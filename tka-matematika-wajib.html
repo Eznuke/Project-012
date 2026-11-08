@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Matematika Wajib &amp; Numerasi</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Matematika<small>Matematika Wajib &amp; Numerasi · SMA</small></div>
+    <div class="c4 timer" id="timer">75:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA MATEMATIKA WAJIB & NUMERASI (SMA)
+   Mengikuti format TKA: 25 soal, 75 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 75 * 60;
+const STORAGE_KEY = "tka-mtk-wajib-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+const SOAL = [
+  { tipe: "pg",
+    stimulus: "Sebuah toko membeli 40 kg beras dengan harga Rp12.000 per kg. Setelah diperiksa, 5% dari beras tersebut rusak dan dibuang. Sisanya dijual dengan harga Rp15.000 per kg.",
+    pertanyaan: "Berapa keuntungan toko tersebut?",
+    opsi: ["Rp60.000", "Rp70.000", "Rp90.000", "Rp100.000", "Rp120.000"], kunci: 2,
+    pembahasan: "Modal = 40 × 12.000 = Rp480.000. Beras rusak = 5% × 40 = 2 kg, sehingga terjual 38 kg × 15.000 = Rp570.000. Keuntungan = 570.000 − 480.000 = Rp90.000." },
+
+  { tipe: "pg",
+    stimulus: "Bu Sari menabung Rp2.000.000 di sebuah bank dengan bunga majemuk 10% per tahun.",
+    pertanyaan: "Berapa jumlah tabungan Bu Sari setelah 2 tahun (tanpa penarikan dan tanpa potongan lain)?",
+    opsi: ["Rp2.400.000", "Rp2.410.000", "Rp2.420.000", "Rp2.440.000", "Rp2.500.000"], kunci: 2,
+    pembahasan: "Bunga majemuk: 2.000.000 × (1,1)² = 2.000.000 × 1,21 = Rp2.420.000. Rp2.400.000 adalah hasil jika bunganya tunggal." },
+
+  { tipe: "pg",
+    stimulus: "Sebuah koloni bakteri berjumlah 500 sel pada awal pengamatan. Jumlah bakteri menjadi dua kali lipat setiap 3 jam.",
+    pertanyaan: "Berapa jumlah bakteri setelah 12 jam?",
+    opsi: ["2.000", "4.000", "6.000", "8.000", "16.000"], kunci: 3,
+    pembahasan: "12 jam : 3 jam = 4 kali penggandaan. Jumlah = 500 × 2⁴ = 500 × 16 = 8.000." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah aplikasi taksi online menetapkan tarif buka Rp8.000, ditambah Rp4.000 untuk setiap kilometer perjalanan.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Tarif untuk perjalanan 5 km adalah Rp28.000.",
+      "Tarif perjalanan 10 km tepat dua kali tarif perjalanan 5 km.",
+      "Dengan uang Rp60.000, penumpang dapat menempuh jarak maksimum 13 km.",
+      "Grafik tarif terhadap jarak melalui titik (0, 0).",
+      "Setiap tambahan 1 km menambah tarif sebesar Rp4.000."
+    ], kunci: [0, 2, 4],
+    pembahasan: "Model: T(x) = 8.000 + 4.000x. (A) T(5) = 28.000, benar. (B) T(10) = 48.000, sedangkan 2 × 28.000 = 56.000, salah. (C) 8.000 + 4.000x = 60.000 → x = 13, benar. (D) T(0) = 8.000, jadi grafik melalui (0; 8.000), salah. (E) Gradien 4.000 per km, benar." },
+
+  { tipe: "pg",
+    stimulus: "Klub kebugaran X memungut biaya pendaftaran Rp300.000 dan iuran Rp100.000 per bulan. Klub kebugaran Y tidak memungut biaya pendaftaran, tetapi iurannya Rp150.000 per bulan.",
+    pertanyaan: "Total biaya di klub X lebih murah daripada di klub Y untuk keanggotaan selama paling sedikit ...",
+    opsi: ["4 bulan", "5 bulan", "6 bulan", "7 bulan", "8 bulan"], kunci: 3,
+    pembahasan: "Klub X: 300 + 100n (ribu rupiah); klub Y: 150n. X lebih murah jika 300 + 100n < 150n → n > 6. Pada n = 6 biayanya sama (Rp900.000), sehingga X lebih murah mulai 7 bulan." },
+
+  { tipe: "pg",
+    stimulus: "Di sebuah toko alat tulis, 3 buku dan 2 pena dibeli seharga Rp29.000, sedangkan 2 buku dan 3 pena dibeli seharga Rp26.000.",
+    pertanyaan: "Berapa harga 1 buku dan 1 pena jika dibeli bersama?",
+    opsi: ["Rp9.000", "Rp10.000", "Rp11.000", "Rp12.000", "Rp13.000"], kunci: 2,
+    pembahasan: "Jumlahkan kedua persamaan: 5 buku + 5 pena = Rp55.000, sehingga 1 buku + 1 pena = Rp11.000. (Buku Rp7.000 dan pena Rp4.000.)" },
+
+  { tipe: "kategori",
+    stimulus: "Budi membawa uang Rp200.000 untuk membeli satu celana seharga Rp80.000 dan beberapa kaos seharga Rp35.000 per buah.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: [
+      "Budi dapat membeli 1 celana dan 3 kaos.",
+      "Budi dapat membeli 1 celana dan 4 kaos.",
+      "Banyak kaos maksimum yang dapat dibeli bersama 1 celana adalah 3.",
+      "Jika tidak membeli celana, Budi dapat membeli 6 kaos."
+    ], kunci: [true, false, true, false],
+    pembahasan: "Syarat: 80.000 + 35.000x ≤ 200.000 → x ≤ 3,43, maksimum 3 kaos. (1) 80.000 + 105.000 = 185.000 ≤ 200.000, benar. (2) 80.000 + 140.000 = 220.000 > 200.000, salah. (3) benar. (4) 6 × 35.000 = 210.000 > 200.000, salah (maksimum 5 kaos)." },
+
+  { tipe: "pg",
+    stimulus: "Sebuah bola dilempar ke atas. Tinggi bola (dalam meter) setelah t detik dinyatakan dengan h(t) = −5t² + 20t + 1.",
+    pertanyaan: "Berapa tinggi maksimum yang dicapai bola?",
+    opsi: ["15 m", "20 m", "21 m", "25 m", "41 m"], kunci: 2,
+    pembahasan: "Sumbu simetri t = −b/2a = −20/(−10) = 2 detik. h(2) = −5(4) + 40 + 1 = 21 m." },
+
+  { tipe: "pg",
+    stimulus: "Sebuah tangki berbentuk tabung tegak memiliki jari-jari alas 70 cm dan tinggi 100 cm. Gunakan π = 22/7 dan 1 liter = 1.000 cm³.",
+    pertanyaan: "Berapa liter air yang dapat ditampung tangki tersebut hingga penuh?",
+    opsi: ["154 liter", "440 liter", "1.540 liter", "4.400 liter", "15.400 liter"], kunci: 2,
+    pembahasan: "V = π r² t = 22/7 × 70 × 70 × 100 = 1.540.000 cm³ = 1.540 liter." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah kolam renang berbentuk persegi panjang berukuran 25 m × 10 m. Di sekeliling kolam, pada bagian luar, dipasang lantai keramik selebar 2 m.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Luas permukaan kolam adalah 250 m².",
+      "Luas daerah kolam beserta lantai keramiknya adalah 406 m².",
+      "Luas lantai keramik saja adalah 156 m².",
+      "Keliling kolam adalah 60 m.",
+      "Luas lantai keramik lebih besar daripada luas kolam."
+    ], kunci: [0, 1, 2],
+    pembahasan: "(A) 25 × 10 = 250 m², benar. (B) (25 + 4) × (10 + 4) = 29 × 14 = 406 m², benar. (C) 406 − 250 = 156 m², benar. (D) Keliling = 2(25 + 10) = 70 m, salah. (E) 156 < 250, salah." },
+
+  { tipe: "pg",
+    stimulus: "Dari jarak 60 m dari kaki sebuah menara (di tanah datar), sudut elevasi puncak menara adalah 30°. Abaikan tinggi pengamat.",
+    pertanyaan: "Tinggi menara tersebut adalah ...",
+    opsi: ["20 m", "20√2 m", "20√3 m", "30 m", "60√3 m"], kunci: 2,
+    pembahasan: "tan 30° = t / 60 → t = 60 × (1/√3) = 60/√3 = 20√3 m." },
+
+  { tipe: "pg",
+    stimulus: "Tabel berikut menunjukkan nilai ulangan 20 siswa.",
+    tabel: { kepala: ["Nilai", "5", "6", "7", "8", "9"], baris: [["Banyak siswa", "2", "4", "8", "4", "2"]] },
+    pertanyaan: "Lima siswa lain mengikuti ulangan susulan dan masing-masing memperoleh nilai 10. Berapa rata-rata nilai seluruh 25 siswa?",
+    opsi: ["7,2", "7,4", "7,6", "7,8", "8,0"], kunci: 2,
+    pembahasan: "Jumlah nilai awal = 2×5 + 4×6 + 8×7 + 4×8 + 2×9 = 10 + 24 + 56 + 32 + 18 = 140. Setelah ditambah 5 × 10 = 50, jumlahnya 190. Rata-rata = 190 : 25 = 7,6." },
+
+  { tipe: "kategori",
+    stimulus: "Tabel berikut menunjukkan banyak produk yang terjual sebuah toko dalam lima hari.",
+    tabel: { kepala: ["Hari", "Senin", "Selasa", "Rabu", "Kamis", "Jumat"], baris: [["Terjual", "20", "35", "25", "40", "30"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: [
+      "Rata-rata penjualan per hari adalah 30 produk.",
+      "Penjualan tertinggi terjadi pada hari Rabu.",
+      "Penjualan hari Kamis dua kali lipat penjualan hari Senin.",
+      "Penjualan naik 75% dari hari Senin ke hari Selasa."
+    ], kunci: [true, false, true, true],
+    pembahasan: "(1) Total = 150, rata-rata = 150 : 5 = 30, benar. (2) Tertinggi hari Kamis (40), salah. (3) 40 = 2 × 20, benar. (4) (35 − 20) : 20 = 75%, benar." },
+
+  { tipe: "pg",
+    stimulus: "Sebuah kantong berisi 5 bola merah, 3 bola biru, dan 2 bola hijau. Dua bola diambil satu per satu secara acak tanpa pengembalian.",
+    pertanyaan: "Peluang kedua bola yang terambil berwarna merah adalah ...",
+    opsi: ["1/4", "2/9", "1/5", "4/9", "1/2"], kunci: 1,
+    pembahasan: "P = 5/10 × 4/9 = 20/90 = 2/9. Nilai 1/4 muncul jika pengambilan dilakukan dengan pengembalian." },
+
+  { tipe: "mcma",
+    stimulus: "Dua dadu bersisi enam (bernomor 1 sampai 6) dilempar bersamaan satu kali.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Peluang jumlah kedua mata dadu 7 adalah 1/6.",
+      "Peluang jumlah kedua mata dadu 12 adalah 1/12.",
+      "Peluang jumlah kedua mata dadu lebih dari 10 adalah 1/12.",
+      "Peluang kedua mata dadu sama adalah 1/3.",
+      "Peluang jumlah kedua mata dadu ganjil adalah 1/2."
+    ], kunci: [0, 2, 4],
+    pembahasan: "Ruang sampel = 36. (A) Jumlah 7: 6 kejadian → 6/36 = 1/6, benar. (B) Jumlah 12 hanya (6,6) → 1/36, salah. (C) Jumlah > 10: (5,6), (6,5), (6,6) → 3/36 = 1/12, benar. (D) Mata sama: 6/36 = 1/6, salah. (E) Jumlah ganjil: 18/36 = 1/2, benar." },
+
+  { tipe: "pg",
+    stimulus: "Seorang karyawan menerima gaji bulanan Rp4.000.000 pada tahun pertama. Setiap tahun gajinya naik tetap sebesar Rp250.000 per bulan dari tahun sebelumnya.",
+    pertanyaan: "Berapa gaji bulanan karyawan tersebut pada tahun ke-9?",
+    opsi: ["Rp5.750.000", "Rp6.000.000", "Rp6.250.000", "Rp6.500.000", "Rp6.750.000"], kunci: 1,
+    pembahasan: "Barisan aritmetika: Un = a + (n − 1)b = 4.000.000 + 8 × 250.000 = Rp6.000.000." },
+
+  { tipe: "pg",
+    stimulus: "Harga sebuah saham naik 20% pada hari Senin, kemudian turun 20% dari harga hari Senin pada hari Selasa.",
+    pertanyaan: "Dibandingkan harga awal sebelum hari Senin, harga saham pada hari Selasa ...",
+    opsi: ["tidak berubah", "turun 4%", "naik 4%", "turun 2%", "naik 2%"], kunci: 1,
+    pembahasan: "Harga akhir = 1,2 × 0,8 = 0,96 kali harga awal, artinya turun 4%. Persentase naik-turun tidak bisa saling meniadakan karena dasar perhitungannya berbeda." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah kendaraan dibeli seharga Rp100 juta. Nilainya turun 10% setiap tahun dari nilai pada tahun sebelumnya.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Nilai kendaraan setelah 1 tahun adalah Rp90 juta.",
+      "Nilai kendaraan setelah 2 tahun adalah Rp80 juta.",
+      "Nilai kendaraan setelah 2 tahun adalah Rp81 juta.",
+      "Penurunan nilai pada tahun kedua lebih kecil daripada penurunan nilai pada tahun pertama.",
+      "Nilai kendaraan menjadi Rp0 setelah 10 tahun."
+    ], kunci: [0, 2, 3],
+    pembahasan: "Nilai = 100 × 0,9ⁿ juta. Tahun 1: 90 juta, tahun 2: 81 juta (B salah, C benar). Penurunan tahun 1 = 10 juta, tahun 2 = 9 juta, jadi lebih kecil (D benar). Setelah 10 tahun nilainya masih sekitar Rp34,9 juta, tidak pernah tepat nol (E salah)." },
+
+  { tipe: "kategori",
+    stimulus: "Sebuah wadah es krim berbentuk kerucut dengan jari-jari alas 3 cm dan tinggi 4 cm. Gunakan π = 3,14.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: [
+      "Panjang garis pelukis kerucut adalah 5 cm.",
+      "Volume kerucut adalah 37,68 cm³.",
+      "Luas selimut kerucut adalah 94,2 cm².",
+      "Jika jari-jari alas dilipatduakan dan tinggi tetap, volumenya menjadi dua kali lipat."
+    ], kunci: [true, true, false, false],
+    pembahasan: "(1) s = √(3² + 4²) = 5 cm, benar. (2) V = ⅓ × 3,14 × 9 × 4 = 37,68 cm³, benar. (3) Luas selimut = π r s = 3,14 × 3 × 5 = 47,1 cm², jadi salah. (4) Volume sebanding dengan r², sehingga menjadi 4 kali lipat, salah." },
+
+  { tipe: "pg",
+    stimulus: "Pada peta berskala 1 : 250.000, jarak antara dua kota adalah 8 cm.",
+    pertanyaan: "Jarak sebenarnya kedua kota tersebut adalah ...",
+    opsi: ["2 km", "8 km", "20 km", "25 km", "200 km"], kunci: 2,
+    pembahasan: "8 × 250.000 = 2.000.000 cm = 20.000 m = 20 km." },
+
+  { tipe: "mcma",
+    stimulus: "Tinggi badan (dalam cm) delapan siswa adalah: 150, 155, 160, 160, 165, 170, 170, 170.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Rata-rata tinggi badan adalah 162,5 cm.",
+      "Median data adalah 160 cm.",
+      "Modus data adalah 170 cm.",
+      "Jangkauan data adalah 20 cm.",
+      "Rata-rata lebih besar daripada modus."
+    ], kunci: [0, 2, 3],
+    pembahasan: "Jumlah data = 1.300, rata-rata = 1.300 : 8 = 162,5 (A benar). Median = (160 + 165) : 2 = 162,5, bukan 160 (B salah). Modus = 170 (C benar). Jangkauan = 170 − 150 = 20 (D benar). Rata-rata 162,5 lebih kecil dari modus 170 (E salah)." },
+
+  { tipe: "kategori",
+    stimulus: "Diketahui fungsi kuadrat f(x) = 2x² − 8x + 6.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: [
+      "Grafik fungsi memotong sumbu X di x = 1 dan x = 3.",
+      "Sumbu simetri grafik adalah x = 2.",
+      "Nilai minimum fungsi adalah 2.",
+      "Grafik fungsi memotong sumbu Y di titik (0, 6)."
+    ], kunci: [true, true, false, true],
+    pembahasan: "f(x) = 2(x − 1)(x − 3), sehingga akar-akarnya 1 dan 3 (1 benar). Sumbu simetri x = 8/(2·2) = 2 (2 benar). f(2) = 8 − 16 + 6 = −2, jadi nilai minimumnya −2, bukan 2 (3 salah). f(0) = 6, jadi memotong sumbu Y di (0, 6) (4 benar)." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah tangga sepanjang 13 m disandarkan pada dinding yang tegak lurus tanah. Ujung bawah tangga berada 5 m dari dinding.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Ujung atas tangga mencapai ketinggian 12 m dari tanah.",
+      "Sinus sudut antara tangga dan tanah adalah 12/13.",
+      "Kosinus sudut antara tangga dan tanah adalah 12/13.",
+      "Tangen sudut antara tangga dan tanah adalah 5/12.",
+      "Sudut antara tangga dan tanah lebih dari 45°."
+    ], kunci: [0, 1, 4],
+    pembahasan: "Tinggi = √(13² − 5²) = √144 = 12 m (A benar). sin = 12/13 (B benar). cos = 5/13, bukan 12/13 (C salah). tan = 12/5, bukan 5/12 (D salah). Karena tan > 1, sudutnya lebih dari 45° (E benar)." },
+
+  { tipe: "mcma",
+    stimulus: "Jarak Bumi ke Matahari adalah sekitar 1,5 × 10⁸ km. Kecepatan cahaya adalah sekitar 3 × 10⁵ km/detik.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: [
+      "Cahaya Matahari tiba di Bumi dalam waktu sekitar 500 detik.",
+      "Waktu tempuh cahaya tersebut sekitar 8,3 menit.",
+      "Waktu tempuh cahaya tersebut sekitar 50 detik.",
+      "Jarak Bumi ke Matahari sama dengan 150 juta km.",
+      "Kecepatan cahaya dalam km/jam adalah 3 × 10⁵."
+    ], kunci: [0, 1, 3],
+    pembahasan: "t = (1,5 × 10⁸) : (3 × 10⁵) = 0,5 × 10³ = 500 detik ≈ 8,3 menit (A dan B benar, C salah). 1,5 × 10⁸ = 150.000.000 km = 150 juta km (D benar). Dalam km/jam, kecepatan cahaya = 3 × 10⁵ × 3.600 ≈ 1,08 × 10⁹, bukan 3 × 10⁵ (E salah)." },
+
+  { tipe: "kategori",
+    stimulus: "Sebuah rumah memakai dua alat listrik setiap hari seperti pada tabel berikut. Tarif listrik Rp1.500 per kWh.",
+    tabel: { kepala: ["Alat", "Daya (watt)", "Pemakaian per hari"], baris: [["Lampu", "10", "5 jam"], ["Kipas angin", "50", "8 jam"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: [
+      "Lampu memakai energi lebih besar daripada kipas angin setiap hari.",
+      "Total energi kedua alat adalah 0,45 kWh per hari.",
+      "Biaya energi kedua alat selama 30 hari adalah Rp22.500.",
+      "Jika kipas angin dipakai 4 jam per hari, energinya menjadi 0,2 kWh per hari."
+    ], kunci: [false, true, false, true],
+    pembahasan: "Lampu: 10 W × 5 jam = 50 Wh = 0,05 kWh. Kipas: 50 W × 8 jam = 400 Wh = 0,4 kWh (1 salah). Total 0,45 kWh per hari (2 benar). 30 hari: 13,5 kWh × 1.500 = Rp20.250, bukan Rp22.500 (3 salah). Kipas 4 jam: 50 × 4 = 200 Wh = 0,2 kWh (4 benar)." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "75:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Matematika", el("br"), "Wajib & Numerasi", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "75 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Bilangan, aljabar & fungsi, geometri & pengukuran, data & peluang, numerasi"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

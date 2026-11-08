@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Bahasa Inggris</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Bahasa Inggris<small>Bahasa Inggris · SMA</small></div>
+    <div class="c4 timer" id="timer">75:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA BAHASA INGGRIS (SMA)
+   Mengikuti format TKA: 30 soal, 75 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 75 * 60;
+const STORAGE_KEY = "tka-bing-wajib-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Shared texts ===== */
+const TXT_1 = "NOTICE: Library Renovation. The school library will be closed from Monday, 3 March, to Friday, 14 March, for the installation of new shelves and a reading corner. During this time, students may borrow up to five books from the temporary counter in Room B2, open daily from 7.30 a.m. to 1 p.m. Books due during the closure may be returned without a late fee until 21 March. The library will reopen on Monday, 17 March.";
+
+const TXT_2 = "Hi Dina, thanks for inviting me to your birthday on Saturday. I'd love to come, but I have a swimming competition that morning and I don't know when it will end. If it finishes before 3 p.m., I can still join you for dinner. Could you save me a seat just in case? Also, I'll bring my homemade chocolate cake, so you don't need to order one. See you soon! Maya";
+
+const TXT_3 = "Urban Gardening on the Rise. In many crowded cities, residents are turning rooftops, balconies and even unused parking spaces into small gardens. In one apartment block in Bandung, 24 families share a rooftop garden where they grow chili, tomatoes and herbs. A resident survey found that families spend about 15% less on vegetables each month, and many say they now cook at home more often. However, urban gardening is not without challenges. Rooftops must be strong enough to hold heavy soil, and plants need regular watering, which can be difficult when residents travel. To solve these problems, some communities use lightweight soil mixes and take turns caring for the plants. Experts say that urban gardens will not replace farms, but they can make cities greener and bring neighbours closer together.";
+
+const TXT_4 = "The table shows the school clubs at a senior high school.";
+const TBL_4 = { kepala: ["Club", "Members", "Meetings per week"], baris: [["English Club", "40", "2"], ["Science Club", "55", "1"], ["Art Club", "25", "3"], ["Robotics Club", "30", "2"]] };
+
+const TXT_6 = "Should School Start Later? Many teenagers struggle to wake up early. Sleep scientists note that during adolescence the body clock shifts, making it natural for teens to fall asleep later at night. A school district in one study moved its first lesson from 7.00 to 8.30 a.m. and found that students were absent less often and reported feeling more alert. Critics, however, argue that a later start would shorten afternoon activities such as sports and part-time jobs, and could cause problems for parents who leave for work early. In my view, schools should try a later start on a trial basis, because the potential benefits for health and learning are significant, while the scheduling problems can be solved with careful planning.";
+
+const TRUE_FALSE_TEXT = "Tentukan apakah setiap pernyataan berikut sesuai dengan teks (Benar) atau tidak sesuai (Salah).";
+
+const SOAL = [
+  /* ---------- Notice (1-3) ---------- */
+  { tipe: "pg", stimulus: TXT_1,
+    pertanyaan: "What is the main purpose of the notice?",
+    opsi: ["To inform students about temporary arrangements during the library renovation", "To invite students to a book fair", "To announce new late fees", "To ask students to donate books", "To advertise new library staff"], kunci: 0,
+    pembahasan: "The notice announces the closure, the reason (renovation), and what students can do meanwhile (borrow from Room B2, return books late without a fee). Its purpose is to inform about temporary arrangements." },
+
+  { tipe: "pg", stimulus: TXT_1,
+    pertanyaan: "What is the last day students can return books due during the closure without a late fee?",
+    opsi: ["14 March", "17 March", "21 March", "3 March", "28 March"], kunci: 2,
+    pembahasan: "The text says books due during the closure may be returned without a late fee until 21 March." },
+
+  { tipe: "mcma", stimulus: TXT_1,
+    pertanyaan: "Select all statements that are true according to the notice.",
+    opsi: ["The library will be closed for two weeks.", "Students can borrow up to five books from Room B2.", "The temporary counter is open all day.", "The library will reopen on 17 March.", "New computers will be installed in the library."], kunci: [0, 1, 3],
+    pembahasan: "(A) Monday 3 March to Friday 14 March is two weeks. (B) and (D) are stated directly. (C) is false: the counter is open only from 7.30 a.m. to 1 p.m. (E) is false: the work is new shelves and a reading corner." },
+
+  /* ---------- Email (4-6) ---------- */
+  { tipe: "pg", stimulus: TXT_2,
+    pertanyaan: "Why is Maya unsure about coming to the party?",
+    opsi: ["She has a swimming competition and may not finish in time.", "She dislikes birthday parties.", "She is sick.", "She has not been invited.", "She does not know Dina's address."], kunci: 0,
+    pembahasan: "Maya says she has a swimming competition that morning and does not know when it will end." },
+
+  { tipe: "pg", stimulus: TXT_2,
+    pertanyaan: "The word \"join\" in the text is closest in meaning to ...",
+    opsi: ["leave", "be together with", "refuse", "forget", "pay for"], kunci: 1,
+    pembahasan: "\"Join you for dinner\" means to be together with Dina and the others at dinner." },
+
+  { tipe: "kategori", stimulus: TXT_2,
+    pertanyaan: TRUE_FALSE_TEXT,
+    pernyataan: ["Maya has definitely decided not to come to the party.", "Maya will bring a homemade chocolate cake.", "Maya can join the dinner only if the competition ends before 3 p.m.", "Maya will arrive at the party at noon."], kunci: [false, true, true, false],
+    pembahasan: "(1) False: she would love to come and may still join. (2) True. (3) True: \"If it finishes before 3 p.m., I can still join you for dinner.\" (4) False: no arrival time is given, and the competition is in the morning." },
+
+  /* ---------- Article: urban gardening (7-12) ---------- */
+  { tipe: "pg", stimulus: TXT_3,
+    pertanyaan: "What is the main idea of the text?",
+    opsi: ["Urban gardening is too expensive to be practical.", "Urban gardening brings benefits to city residents, but some practical problems must be solved.", "Farms are no longer needed in modern cities.", "Rooftops are too dangerous to be used for gardens.", "Vegetables are always cheaper in big cities."], kunci: 1,
+    pembahasan: "The text describes benefits (savings, cooking at home, greener cities), then challenges and solutions. Option B covers both parts." },
+
+  { tipe: "pg", stimulus: TXT_3,
+    pertanyaan: "According to the resident survey, what happened to the families who joined the garden?",
+    opsi: ["They spend about 15% less on vegetables each month.", "They spend about 15% more on vegetables each month.", "They stopped cooking at home.", "They moved to a different building.", "They sold all their vegetables."], kunci: 0,
+    pembahasan: "The survey found families spend about 15% less on vegetables each month." },
+
+  { tipe: "pg", stimulus: TXT_3,
+    pertanyaan: "The word \"challenges\" in the text is closest in meaning to ...",
+    opsi: ["difficulties", "benefits", "rewards", "rules", "prizes"], kunci: 0,
+    pembahasan: "\"Not without challenges\" is followed by examples of problems (heavy soil, regular watering), so challenges means difficulties." },
+
+  { tipe: "pg", stimulus: TXT_3,
+    pertanyaan: "Why do some communities use lightweight soil mixes?",
+    opsi: ["To reduce the weight placed on rooftops", "To make plants grow faster", "To save water", "To attract more insects", "To lower vegetable prices"], kunci: 0,
+    pembahasan: "The problem is that rooftops must be strong enough to hold heavy soil. Lightweight soil mixes are given as a solution to that problem." },
+
+  { tipe: "mcma", stimulus: TXT_3,
+    pertanyaan: "Select all statements that are true according to the text.",
+    opsi: ["Twenty-four families share a rooftop garden in one Bandung apartment block.", "Families spend about 15% more on vegetables each month.", "Some communities take turns caring for the plants.", "Experts say urban gardens will replace farms.", "Urban gardens can bring neighbours closer together."], kunci: [0, 2, 4],
+    pembahasan: "(A), (C), (E) are stated in the text. (B) is reversed: it is 15% less. (D) is false: experts say gardens will not replace farms." },
+
+  { tipe: "kategori", stimulus: TXT_3,
+    pertanyaan: TRUE_FALSE_TEXT,
+    pernyataan: ["The writer thinks urban gardening has no problems.", "Watering can be difficult when residents are travelling.", "Urban gardens are expected to replace farms entirely.", "Some residents cook at home more often."], kunci: [false, true, false, true],
+    pembahasan: "(1) False: it is \"not without challenges\". (2) True. (3) False: experts say they will not replace farms. (4) True: many families say they cook at home more often." },
+
+  /* ---------- Table: school clubs (13-16) ---------- */
+  { tipe: "pg", stimulus: TXT_4, tabel: TBL_4,
+    pertanyaan: "What percentage of all club members belong to the Robotics Club?",
+    opsi: ["15%", "20%", "25%", "30%", "35%"], kunci: 1,
+    pembahasan: "Total members = 40 + 55 + 25 + 30 = 150. Robotics: 30 / 150 × 100% = 20%." },
+
+  { tipe: "pg", stimulus: TXT_4, tabel: TBL_4,
+    pertanyaan: "How many more members does the Science Club have than the Art Club?",
+    opsi: ["20", "25", "30", "35", "40"], kunci: 2,
+    pembahasan: "55 − 25 = 30." },
+
+  { tipe: "mcma", stimulus: TXT_4, tabel: TBL_4,
+    pertanyaan: "Select all statements that are supported by the table.",
+    opsi: ["The Science Club has the most members.", "The Art Club meets most often.", "The English Club has fewer members than the Robotics Club.", "The total number of members is 150.", "The Robotics Club meets once a week."], kunci: [0, 1, 3],
+    pembahasan: "(A) 55 is the highest. (B) Art meets 3 times a week. (C) False: 40 is more than 30. (D) 40 + 55 + 25 + 30 = 150. (E) False: Robotics meets twice a week." },
+
+  { tipe: "kategori", stimulus: TXT_4, tabel: TBL_4,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut sesuai dengan data pada tabel (Benar) atau tidak (Salah).",
+    pernyataan: ["The English Club meets twice a week.", "More than one-third of all members are in the Science Club.", "The Art Club has the fewest members.", "The English Club and the Robotics Club together have 80 members."], kunci: [true, true, true, false],
+    pembahasan: "(1) True. (2) 55/150 is about 36.7%, which is more than 33.3%. (3) True: 25 is the lowest. (4) False: 40 + 30 = 70." },
+
+  /* ---------- Grammar and vocabulary (17-24) ---------- */
+  { tipe: "pg",
+    stimulus: "Complete the sentence: \"If I ___ more time, I would learn to play the guitar.\"",
+    pertanyaan: "Which option completes the sentence correctly?",
+    opsi: ["have", "had", "will have", "having", "has"], kunci: 1,
+    pembahasan: "This is a second conditional (unreal present). The if-clause uses the simple past (\"had\") and the main clause uses \"would\"." },
+
+  { tipe: "pg",
+    stimulus: "Complete the sentence: \"The windows ___ every Friday by the cleaners.\"",
+    pertanyaan: "Which option completes the sentence correctly?",
+    opsi: ["clean", "cleans", "are cleaned", "is cleaning", "cleaned"], kunci: 2,
+    pembahasan: "The windows receive the action, and the cleaners are the agent (\"by the cleaners\"). A habitual passive in the present is \"are cleaned\"." },
+
+  { tipe: "pg",
+    stimulus: "\"The manager was reluctant to approve the plan because it was too expensive.\"",
+    pertanyaan: "The word \"reluctant\" is closest in meaning to ...",
+    opsi: ["eager", "unwilling", "happy", "able", "quick"], kunci: 1,
+    pembahasan: "The reason given (too expensive) shows the manager did not want to approve the plan. Reluctant means unwilling." },
+
+  { tipe: "pg",
+    stimulus: "\"She studied hard for the test; ___, she did not pass.\"",
+    pertanyaan: "Which linking word best completes the sentence?",
+    opsi: ["therefore", "however", "moreover", "besides", "because"], kunci: 1,
+    pembahasan: "The second clause contrasts with expectation (studied hard, but failed). \"However\" signals contrast. \"Therefore\" signals result and \"moreover\" signals addition." },
+
+  { tipe: "pg",
+    stimulus: "\"By the time we arrived at the cinema, the film ___.\"",
+    pertanyaan: "Which option completes the sentence correctly?",
+    opsi: ["already started", "had already started", "has already started", "was already start", "already starts"], kunci: 1,
+    pembahasan: "Two past events: arriving and the film starting. The earlier event (starting) uses the past perfect, \"had already started\"." },
+
+  { tipe: "mcma",
+    stimulus: "Read the following sentences.",
+    pertanyaan: "Select all sentences that are grammatically correct.",
+    opsi: ["She doesn't like spicy food.", "He have two brothers.", "They have been waiting for an hour.", "I am agree with you.", "The number of students has increased."], kunci: [0, 2, 4],
+    pembahasan: "(B) should be \"He has two brothers.\" (D) should be \"I agree with you.\" (A), (C), (E) are correct." },
+
+  { tipe: "kategori",
+    stimulus: "Read the following sentences.",
+    pertanyaan: "Tentukan apakah setiap kalimat berikut benar secara tata bahasa (Benar) atau salah (Salah).",
+    pernyataan: ["Each of the students have a locker.", "The news is surprising.", "She suggested to go early.", "I look forward to seeing you."], kunci: [false, true, false, true],
+    pembahasan: "(1) Incorrect: \"Each ... has\". (2) Correct: \"news\" is uncountable and takes a singular verb. (3) Incorrect: \"suggested going early\". (4) Correct: \"look forward to\" is followed by -ing." },
+
+  { tipe: "pg",
+    stimulus: "Arrange the sentences. (1) Then, put the bread in the toaster. (2) First, take two slices of bread. (3) Finally, add butter and enjoy. (4) Wait until it turns golden brown.",
+    pertanyaan: "Which order makes a logical paragraph?",
+    opsi: ["2 - 1 - 4 - 3", "1 - 2 - 3 - 4", "2 - 4 - 1 - 3", "4 - 2 - 1 - 3", "1 - 4 - 2 - 3"], kunci: 0,
+    pembahasan: "Sequence words give the order: First (2), Then (1), wait until golden brown (4), Finally (3)." },
+
+  /* ---------- Argumentative text: school start time (25-30) ---------- */
+  { tipe: "pg", stimulus: TXT_6,
+    pertanyaan: "What is the writer's position?",
+    opsi: ["The school day should never change.", "Schools should try a later start time on a trial basis.", "Teenagers should sleep less.", "Sports are more important than sleep.", "Parents should leave for work later."], kunci: 1,
+    pembahasan: "The last sentence states the writer's view: schools should try a later start on a trial basis." },
+
+  { tipe: "pg", stimulus: TXT_6,
+    pertanyaan: "Which statement is supported by evidence in the text?",
+    opsi: ["A later start will make every student healthier.", "In one study, students were absent less often after the first lesson moved to 8.30 a.m.", "Parents will always oppose the change.", "Teenagers do not need much sleep.", "Sports are better in the morning."], kunci: 1,
+    pembahasan: "Only (B) reports a study finding. The other options are predictions or opinions that the text does not support." },
+
+  { tipe: "pg", stimulus: TXT_6,
+    pertanyaan: "The word \"alert\" in the text is closest in meaning to ...",
+    opsi: ["sleepy", "fully awake and attentive", "worried", "angry", "absent"], kunci: 1,
+    pembahasan: "Students felt more alert after a later start, as a positive effect of more sleep. Alert means awake and attentive." },
+
+  { tipe: "mcma", stimulus: TXT_6,
+    pertanyaan: "Select all arguments made by the critics of a later start.",
+    opsi: ["Afternoon activities would be shortened.", "Parents who leave for work early could face problems.", "Teenagers' body clocks do not change.", "Students would be absent more often.", "Students' part-time jobs could be affected."], kunci: [0, 1, 4],
+    pembahasan: "Critics mention shortened afternoon activities (sports and part-time jobs) and problems for parents who leave early. (C) and (D) are not critics' arguments; (D) is even the opposite of the study finding." },
+
+  { tipe: "pg", stimulus: TXT_6,
+    pertanyaan: "What is the purpose of the phrase \"while the scheduling problems can be solved with careful planning\"?",
+    opsi: ["To admit that the writer's idea is impossible", "To respond to the critics' concerns", "To introduce a new topic", "To describe the study", "To give a definition"], kunci: 1,
+    pembahasan: "The scheduling problems are the critics' concerns. The writer answers them by saying careful planning can solve them." },
+
+  { tipe: "kategori", stimulus: TXT_6,
+    pertanyaan: TRUE_FALSE_TEXT,
+    pernyataan: ["According to sleep scientists, teens naturally tend to fall asleep later at night.", "The writer believes a later start should be adopted immediately in all schools.", "In the study, students reported feeling more alert.", "Critics say a later start would benefit sports."], kunci: [true, false, true, false],
+    pembahasan: "(1) True. (2) False: the writer proposes a trial. (3) True. (4) False: critics say sports would be affected negatively because afternoon time is shortened." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "75:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Bahasa", el("br"), "Inggris", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "30 butir"], ["Waktu", "75 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Reading comprehension (pengumuman, surel, artikel, tabel), grammar, vocabulary"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

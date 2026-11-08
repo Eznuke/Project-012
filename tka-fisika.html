@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Fisika</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Fisika<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA FISIKA (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-fisika-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Data soal TKA SMA: FISIKA (25 soal orisinal; g = 10 m/s² bila tidak disebut lain) ===== */
+
+const SOAL = [
+  /* ---------- Pilihan ganda (1-13) ---------- */
+  { tipe: "pg",
+    stimulus: "Sebuah mobil uji bergerak lurus dengan percepatan tetap. Kecepatannya direkam setiap 2 sekon dan hasilnya disajikan pada tabel berikut.",
+    tabel: { kepala: ["t (s)", "v (m/s)"], baris: [["0", "4"], ["2", "10"], ["4", "16"], ["6", "22"]] },
+    pertanyaan: "Jarak yang ditempuh mobil selama 6 sekon pertama adalah ...",
+    opsi: ["54 m", "66 m", "96 m", "78 m", "132 m"], kunci: 3,
+    pembahasan: "Percepatan a = (10 − 4) ÷ 2 = 3 m/s². Jarak s = v₀t + ½at² = 4(6) + ½(3)(36) = 24 + 54 = 78 m. Cara lain: kecepatan rata-rata (4 + 22) ÷ 2 = 13 m/s, sehingga s = 13 × 6 = 78 m. Pengecoh: 54 m hanya memakai suku ½at²; 96 m memakai kecepatan pada t = 4 s dikali 6 s; 132 m memakai kecepatan akhir dikali waktu (seolah GLB); 66 m memakai kecepatan akhir dikali setengah waktu." },
+
+  { tipe: "pg",
+    stimulus: "Seorang penjaga gawang menendang bola dari tanah datar dengan kecepatan awal 20 m/s dan sudut elevasi 37° terhadap horizontal. Hambatan udara diabaikan; g = 10 m/s², sin 37° = 0,6, dan cos 37° = 0,8.",
+    pertanyaan: "Jarak mendatar dari titik tendangan sampai bola kembali menyentuh tanah adalah ...",
+    opsi: ["38,4 m", "28,8 m", "24,0 m", "40,0 m", "48,0 m"], kunci: 0,
+    pembahasan: "Komponen kecepatan: vₓ = 20 × 0,8 = 16 m/s dan v_y = 20 × 0,6 = 12 m/s. Waktu di udara t = 2v_y ÷ g = 2(12) ÷ 10 = 2,4 s. Jarak mendatar = vₓ × t = 16 × 2,4 = 38,4 m. Pengecoh: 28,8 m memakai v_y × t; 48 m memakai kecepatan penuh 20 m/s × t; 24 m berasal dari v² sin θ ÷ g (lupa faktor 2 dan cos θ); 40 m adalah jangkauan maksimum pada sudut 45°, bukan 37°." },
+
+  { tipe: "pg",
+    stimulus: "Balok 5 kg berada di atas meja datar kasar dengan koefisien gesekan kinetik 0,2. Balok dihubungkan dengan tali ringan melalui katrol licin di tepi meja ke beban 3 kg yang menggantung. Sistem dilepas dari keadaan diam.",
+    pertanyaan: "Percepatan sistem adalah ...",
+    opsi: ["2,0 m/s²", "3,0 m/s²", "2,5 m/s²", "3,75 m/s²", "4,0 m/s²"], kunci: 2,
+    pembahasan: "Gaya gesek f = μk × m × g = 0,2 × 5 × 10 = 10 N. Gaya penggerak sistem adalah berat beban 3 kg = 30 N. a = (30 − 10) ÷ (5 + 3) = 20 ÷ 8 = 2,5 m/s². Pengecoh: 3,75 m/s² muncul bila gesekan diabaikan (30 ÷ 8); 4,0 m/s² muncul bila massa beban lupa ikut dihitung sebagai massa yang dipercepat (20 ÷ 5)." },
+
+  { tipe: "pg",
+    stimulus: "Seorang siswa melepas balok bermassa 2 kg dari keadaan diam di puncak lintasan lengkung yang tingginya 5 m dari dasar. Sensor di dasar lintasan mencatat kelajuan balok 8 m/s. Gunakan g = 10 m/s².",
+    pertanyaan: "Energi yang berubah menjadi kalor akibat gesekan selama balok menuruni lintasan adalah ...",
+    opsi: ["20 J", "36 J", "64 J", "100 J", "164 J"], kunci: 1,
+    pembahasan: "Energi potensial awal = mgh = 2 × 10 × 5 = 100 J. Energi kinetik di dasar = ½mv² = ½ × 2 × 64 = 64 J. Energi yang hilang = 100 − 64 = 36 J. Pengecoh: 100 J adalah energi awal total, 64 J adalah energi kinetik akhir, 164 J adalah penjumlahan yang keliru." },
+
+  { tipe: "pg",
+    stimulus: "Pada uji tabrak di rel lurus, troli P bermassa 3 kg bergerak 4 m/s menumbuk troli Q bermassa 1 kg yang diam. Setelah tumbukan, kedua troli saling mengait dan bergerak bersama.",
+    pertanyaan: "Energi kinetik yang hilang selama tumbukan adalah ...",
+    opsi: ["24 J", "18 J", "12 J", "3 J", "6 J"], kunci: 4,
+    pembahasan: "Momentum kekal: 3 × 4 = (3 + 1) v′ sehingga v′ = 3 m/s. Energi kinetik awal = ½ × 3 × 16 = 24 J. Energi kinetik akhir = ½ × 4 × 9 = 18 J. Energi yang hilang = 24 − 18 = 6 J. Pengecoh: 24 J dan 18 J adalah energi awal dan akhir, bukan selisihnya." },
+
+  { tipe: "pg",
+    stimulus: "Air mengalir dalam pipa mendatar yang menyempit. Pada penampang lebar (diameter 8 cm) laju alirnya 1 m/s, sedangkan penampang sempit berdiameter 4 cm. Massa jenis air 1.000 kg/m³.",
+    pertanyaan: "Selisih tekanan antara penampang lebar dan penampang sempit adalah ...",
+    opsi: ["1,5 kPa", "3,0 kPa", "7,5 kPa", "15 kPa", "31,5 kPa"], kunci: 2,
+    pembahasan: "Kontinuitas: A₁v₁ = A₂v₂. Luas sebanding dengan diameter kuadrat, jadi rasio luas 4 : 1 dan v₂ = 4 m/s. Bernoulli (pipa mendatar): ΔP = ½ρ(v₂² − v₁²) = ½ × 1.000 × (16 − 1) = 7.500 Pa = 7,5 kPa. Pengecoh: 15 kPa terjadi bila faktor ½ dilupakan; 31,5 kPa bila rasio diameter (bukan luas) dipakai sehingga v₂ = 8 m/s; 3,0 kPa bila kecepatan tidak dikuadratkan dan tanpa ½; 1,5 kPa bila selisih kecepatan tidak dikuadratkan." },
+
+  { tipe: "pg",
+    stimulus: "Dalam percobaan kalorimetri, sebuah logam dipanaskan sampai 100°C lalu dimasukkan ke dalam air. Kalor jenis air 4.200 J/kg°C. Kalor yang diserap kalorimeter dan yang hilang ke lingkungan diabaikan.",
+    tabel: { kepala: ["Benda", "Massa", "Suhu awal (°C)", "Suhu akhir (°C)"], baris: [["Air", "200 g", "20", "25"], ["Logam", "100 g", "100", "25"]] },
+    pertanyaan: "Kalor jenis logam tersebut adalah ...",
+    opsi: ["560 J/kg°C", "525 J/kg°C", "420 J/kg°C", "840 J/kg°C", "1.050 J/kg°C"], kunci: 0,
+    pembahasan: "Kalor diserap air: Q = 0,2 × 4.200 × (25 − 20) = 4.200 J. Kalor dilepas logam sama besar: 4.200 = 0,1 × c × (100 − 25) = 7,5c, sehingga c = 560 J/kg°C. Pengecoh 525 J/kg°C muncul bila penurunan suhu logam salah dihitung 80°C (memakai suhu awal air)." },
+
+  { tipe: "pg",
+    stimulus: "Seutas tali panjang digetarkan dan gelombang transversal yang merambat pada tali dinyatakan dengan persamaan simpangan y = 0,02 sin (10πt − 2πx), dengan x dan y dalam meter serta t dalam sekon.",
+    pertanyaan: "Cepat rambat gelombang tersebut adalah ...",
+    opsi: ["2,5 m/s", "5 m/s", "10 m/s", "20 m/s", "0,2 m/s"], kunci: 1,
+    pembahasan: "Dari bentuk y = A sin (ωt − kx): ω = 10π rad/s dan k = 2π rad/m. Cepat rambat v = ω ÷ k = 10π ÷ 2π = 5 m/s. Cek: f = ω ÷ 2π = 5 Hz dan λ = 2π ÷ k = 1 m, sehingga v = λf = 5 m/s. Pengecoh 0,2 m/s berasal dari k ÷ ω (terbalik)." },
+
+  { tipe: "pg",
+    stimulus: "Sebuah mobil patroli membunyikan sirene dengan frekuensi 900 Hz sambil mendekati pengamat yang diam. Data pengukuran: kelajuan mobil 40 m/s dan cepat rambat bunyi di udara 340 m/s.",
+    pertanyaan: "Frekuensi sirene yang terdengar oleh pengamat adalah ...",
+    opsi: ["805 Hz", "900 Hz", "940 Hz", "1.020 Hz", "1.006 Hz"], kunci: 3,
+    pembahasan: "Sumber mendekati pendengar diam: f′ = f × v ÷ (v − vs) = 900 × 340 ÷ (340 − 40) = 900 × 340 ÷ 300 = 1.020 Hz. Pengecoh: 805 Hz adalah frekuensi bila sumber menjauh (penyebut 380); 1.006 Hz muncul bila pengamat yang dianggap mendekat (900 × 380 ÷ 340); 940 Hz berasal dari penjumlahan 900 + 40 yang tidak punya dasar fisis." },
+
+  { tipe: "pg",
+    stimulus: "Sebuah genset diukur taraf intensitas bunyinya pada beberapa jarak. Anggap bunyi merambat merata ke segala arah dan tidak ada penyerapan oleh udara.",
+    tabel: { kepala: ["Jarak dari genset", "Taraf intensitas"], baris: [["1 m", "80 dB"]] },
+    pertanyaan: "Taraf intensitas bunyi genset pada jarak 10 m adalah ...",
+    opsi: ["8 dB", "40 dB", "50 dB", "70 dB", "60 dB"], kunci: 4,
+    pembahasan: "Intensitas berbanding terbalik dengan kuadrat jarak. Jarak naik 10 kali sehingga intensitas turun 100 kali. Penurunan taraf intensitas = 10 log 100 = 20 dB, jadi TI = 80 − 20 = 60 dB. Pengecoh 70 dB muncul bila dipakai 10 log 10 (jarak tidak dikuadratkan)." },
+
+  { tipe: "pg",
+    stimulus: "Hasil pemeriksaan mata dua siswa miopi disajikan pada tabel. Titik jauh adalah jarak terjauh yang masih dapat dilihat jelas tanpa bantuan lensa.",
+    tabel: { kepala: ["Siswa", "Titik jauh"], baris: [["A", "50 cm"], ["B", "25 cm"]] },
+    pertanyaan: "Lensa kacamata yang tepat untuk Siswa A adalah ...",
+    opsi: ["−0,5 dioptri", "−2 dioptri", "−1 dioptri", "−4 dioptri", "+2 dioptri"], kunci: 1,
+    pembahasan: "Miopi dikoreksi dengan lensa cekung (negatif) yang membentuk bayangan benda jauh tak hingga di titik jauh mata. Maka f = −PR = −50 cm = −0,5 m dan P = 1 ÷ f = −2 dioptri. Pengecoh: −4 dioptri adalah untuk Siswa B (titik jauh 25 cm); +2 dioptri salah tanda karena lensa positif untuk hipermetropi." },
+
+  { tipe: "pg",
+    stimulus: "Dua bola kecil bermuatan +4 μC dan +9 μC ditempatkan pada garis lurus dan terpisah 50 cm. Titik P berada di antara kedua muatan pada garis hubung tersebut.",
+    pertanyaan: "Agar kuat medan listrik di titik P bernilai nol, jarak P dari muatan +4 μC adalah ...",
+    opsi: ["20 cm", "10 cm", "25 cm", "30 cm", "40 cm"], kunci: 0,
+    pembahasan: "Medan nol bila E₁ = E₂ dengan arah saling berlawanan: k(4)/x² = k(9)/(50 − x)². Akar kedua sisi: 2/x = 3/(50 − x), sehingga 100 − 2x = 3x dan x = 20 cm dari muatan +4 μC. Cek: 4 ÷ 400 = 9 ÷ 900. Pengecoh: 25 cm adalah titik tengah (hanya benar bila muatan sama); 30 cm adalah jarak dari muatan +9 μC." },
+
+  { tipe: "pg",
+    stimulus: "Sumber tegangan 12 V (hambatan dalam diabaikan) dirangkai dengan resistor R₁ = 6 Ω dan R₂ = 3 Ω yang dipasang paralel, lalu dirangkai seri dengan resistor R₃ = 2 Ω.",
+    pertanyaan: "Daya listrik yang diserap resistor R₂ adalah ...",
+    opsi: ["6 W", "9 W", "12 W", "18 W", "24 W"], kunci: 2,
+    pembahasan: "Hambatan paralel R₁ dan R₂ = (6 × 3) ÷ (6 + 3) = 2 Ω. Hambatan total = 2 + 2 = 4 Ω, sehingga I total = 12 ÷ 4 = 3 A. Tegangan pada bagian paralel = 3 × 2 = 6 V. Daya R₂ = V² ÷ R = 36 ÷ 3 = 12 W. Pengecoh: 6 W adalah daya R₁ (36 ÷ 6); 18 W adalah daya R₃ (3² × 2)." },
+
+  /* ---------- Pilihan ganda kompleks (14-20) ---------- */
+  { tipe: "mcma",
+    stimulus: "Sebuah benda bergerak lurus dengan percepatan tetap. Kecepatannya dicatat setiap sekon seperti pada tabel.",
+    tabel: { kepala: ["t (s)", "0", "1", "2", "3", "4"], baris: [["v (m/s)", "10", "8", "6", "4", "2"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Benda mengalami perlambatan 2 m/s².", "Benda berhenti sesaat pada t = 5 s.", "Jarak yang ditempuh sampai berhenti adalah 25 m.", "Perpindahan benda selama 4 s pertama adalah 28 m.", "Benda bergerak dipercepat karena kecepatannya selalu bernilai positif."], kunci: [0, 1, 2],
+    pembahasan: "Kecepatan turun 2 m/s tiap sekon, jadi perlambatan 2 m/s² (A benar). v = 0 saat t = 10 ÷ 2 = 5 s (B benar). Jarak sampai berhenti = v₀² ÷ 2a = 100 ÷ 4 = 25 m (C benar). Perpindahan 4 s pertama = ½(10 + 2) × 4 = 24 m, bukan 28 m (D salah). Benda dipercepat atau diperlambat ditentukan oleh arah percepatan terhadap kecepatan, bukan tanda kecepatan; di sini kecepatan mengecil sehingga diperlambat (E salah)." },
+
+  { tipe: "mcma",
+    stimulus: "Seorang siswa bermassa 60 kg berdiri di atas neraca pegas di dalam lift. Neraca membaca gaya normal yang diberikan lantai lift. Tiga pembacaan dicatat selama lift bergerak vertikal. Gunakan g = 10 m/s².",
+    tabel: { kepala: ["Pengamatan", "Pembacaan neraca"], baris: [["1", "720 N"], ["2", "480 N"], ["3", "600 N"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Pada pengamatan 1, percepatan lift 2 m/s² ke arah atas.", "Pada pengamatan 2, percepatan lift 2 m/s² ke arah bawah.", "Pada pengamatan 3, lift pasti dalam keadaan diam.", "Pada pengamatan 1, lift pasti sedang bergerak naik.", "Berat siswa sebenarnya tetap 600 N pada ketiga pengamatan; yang berubah adalah gaya normal."], kunci: [0, 1, 4],
+    pembahasan: "Berat sebenarnya mg = 600 N (E benar). Pengamatan 1: N − mg = ma sehingga a = 120 ÷ 60 = 2 m/s² ke atas (A benar). Pengamatan 2: mg − N = ma sehingga a = 120 ÷ 60 = 2 m/s² ke bawah (B benar). Pengamatan 3: a = 0, bisa diam atau bergerak dengan kecepatan tetap (C salah). Pada pengamatan 1 percepatan ke atas dapat terjadi saat lift naik dipercepat atau turun diperlambat, sehingga arah geraknya tidak pasti (D salah)." },
+
+  { tipe: "mcma",
+    stimulus: "Balok 2 kg yang mula-mula diam ditarik oleh gaya 20 N sejajar bidang miring licin (sudut 30° terhadap horizontal) sepanjang 5 m ke atas bidang. Gunakan g = 10 m/s².",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Energi kinetik balok setelah menempuh 5 m adalah 100 J.", "Usaha oleh gaya gravitasi selama perpindahan itu adalah −50 J.", "Kelajuan balok setelah menempuh 5 m adalah 10 m/s.", "Usaha oleh gaya tarik adalah 100 J.", "Energi mekanik balok bertambah 100 J."], kunci: [1, 3, 4],
+    pembahasan: "Usaha gaya tarik = 20 × 5 = 100 J (D benar). Usaha gravitasi = −mg sin 30° × s = −2 × 10 × 0,5 × 5 = −50 J (B benar). Usaha total = 50 J = energi kinetik akhir (A salah), sehingga v = √(2 × 50 ÷ 2) = √50 ≈ 7,07 m/s (C salah). Energi potensial naik mgh = 2 × 10 × 2,5 = 50 J, energi kinetik naik 50 J, jadi energi mekanik naik 100 J, sama dengan usaha gaya tarik sebagai gaya luar (E benar)." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah bola bermassa 0,5 kg bergerak 10 m/s menuju pemukul, lalu dipukul balik dengan kecepatan 14 m/s berlawanan arah semula. Waktu kontak bola dengan pemukul 0,02 s.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Momentum bola kekal selama bola bersentuhan dengan pemukul.", "Impuls yang diterima bola adalah 12 N·s.", "Gaya rata-rata pemukul pada bola adalah 600 N.", "Impuls yang diterima bola adalah 2 N·s.", "Bila impuls sama tetapi waktu kontak dijadikan 0,04 s, gaya rata-rata menjadi 300 N."], kunci: [1, 2, 4],
+    pembahasan: "Ambil arah pukulan sebagai positif: Δp = 0,5 × (14 − (−10)) = 12 kg·m/s, jadi impuls 12 N·s (B benar). Gaya rata-rata F = I ÷ Δt = 12 ÷ 0,02 = 600 N (C benar). Dengan Δt = 0,04 s, F = 12 ÷ 0,04 = 300 N (E benar). Momentum bola berubah karena ada gaya luar dari pemukul (A salah). Impuls 2 N·s berasal dari selisih besar kecepatan tanpa memperhatikan arah (D salah)." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah benda digantung pada neraca pegas. Di udara neraca menunjukkan 12 N, sedangkan ketika benda tercelup seluruhnya dalam air (massa jenis 1.000 kg/m³) neraca menunjukkan 8 N. Gunakan g = 10 m/s².",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Gaya apung pada benda di dalam air adalah 4 N.", "Volume benda adalah 4 × 10⁻³ m³.", "Massa jenis benda adalah 3.000 kg/m³.", "Jika dilepas di dalam air, benda akan melayang.", "Jika dicelupkan seluruhnya ke dalam cairan bermassa jenis 800 kg/m³, neraca menunjukkan 8,8 N."], kunci: [0, 2, 4],
+    pembahasan: "Gaya apung = 12 − 8 = 4 N (A benar). Volume = F ÷ (ρg) = 4 ÷ (1.000 × 10) = 4 × 10⁻⁴ m³, bukan 4 × 10⁻³ (B salah). Massa = 12 ÷ 10 = 1,2 kg sehingga ρ benda = 1,2 ÷ 4 × 10⁻⁴ = 3.000 kg/m³ (C benar). Karena ρ benda lebih besar dari ρ air, benda tenggelam, bukan melayang (D salah). Di cairan 800 kg/m³: F = 800 × 10 × 4 × 10⁻⁴ = 3,2 N sehingga berat tampak 12 − 3,2 = 8,8 N (E benar)." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah pemanas listrik 840 W dicelupkan ke dalam 2 kg air bersuhu 25°C selama 5 menit. Kalor jenis air 4.200 J/kg°C. Anggap seluruh energi listrik diserap air dan tidak ada kalor yang hilang, kecuali bila disebutkan lain.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Energi yang diserap air selama 5 menit adalah 252 kJ.", "Suhu akhir air adalah 85°C.", "Jika efisiensi pemanas hanya 50%, suhu akhir air adalah 40°C.", "Jika massa air dijadikan 4 kg dengan pemanas dan waktu sama, kenaikan suhunya 15°C.", "Kalor jenis air bertambah jika air dipanaskan lebih lama."], kunci: [0, 2, 3],
+    pembahasan: "Energi = P × t = 840 × 300 = 252.000 J = 252 kJ (A benar). Kenaikan suhu = 252.000 ÷ (2 × 4.200) = 30°C, jadi suhu akhir 55°C, bukan 85°C (B salah). Dengan efisiensi 50%, kalor diserap 126 kJ sehingga ΔT = 15°C dan suhu akhir 40°C (C benar). Dengan massa 4 kg, ΔT = 252.000 ÷ (4 × 4.200) = 15°C (D benar). Kalor jenis adalah sifat zat dan tidak bergantung lama pemanasan (E salah)." },
+
+  { tipe: "mcma",
+    stimulus: "Sebuah proton (muatan 1,6 × 10⁻¹⁹ C) memasuki daerah medan magnet homogen B = 0,5 T dengan kecepatan 2 × 10⁶ m/s tegak lurus arah medan.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Gaya magnetik pada proton adalah 1,6 × 10⁻¹³ N.", "Proton bergerak pada lintasan lurus.", "Gaya magnetik menambah energi kinetik proton.", "Jika kelajuan proton dijadikan dua kali (arah tetap tegak lurus), jari-jari lintasannya menjadi dua kali.", "Gaya magnetik tidak melakukan usaha pada proton."], kunci: [0, 3, 4],
+    pembahasan: "F = qvB = 1,6 × 10⁻¹⁹ × 2 × 10⁶ × 0,5 = 1,6 × 10⁻¹³ N (A benar). Gaya selalu tegak lurus kecepatan sehingga hanya membelokkan arah dan lintasan berupa lingkaran, bukan garis lurus (B salah). Karena gaya tegak lurus perpindahan, usaha nol dan energi kinetik tetap (C salah, E benar). Jari-jari r = mv ÷ (qB) sebanding dengan v, sehingga kelajuan dua kali memberi jari-jari dua kali (D benar)." },
+
+  /* ---------- Kategori Benar/Salah (21-25) ---------- */
+  { tipe: "kategori",
+    stimulus: "Pipa organa terbuka dan pipa organa tertutup sama-sama berukuran panjang 0,85 m. Cepat rambat bunyi di udara 340 m/s. Frekuensi nada dasar pipa terbuka = v ÷ 2L, sedangkan pipa tertutup = v ÷ 4L (hanya harmonik ganjil).",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Frekuensi nada dasar pipa organa terbuka adalah 200 Hz.", "Pipa organa tertutup dapat menghasilkan nada berfrekuensi 200 Hz.", "Nada atas pertama pipa organa tertutup berfrekuensi 300 Hz.", "Nada atas kedua pipa organa terbuka berfrekuensi 400 Hz."], kunci: [true, false, true, false],
+    pembahasan: "Pipa terbuka: f = n × 340 ÷ 1,7 = 200n Hz, yaitu 200; 400; 600 Hz. Pernyataan 1 benar; nada 400 Hz adalah nada atas pertama, sedangkan nada atas kedua 600 Hz, jadi pernyataan 4 salah. Pipa tertutup: f = (2n − 1) × 340 ÷ 3,4 = 100, 300, 500 Hz. Nada 200 Hz tidak muncul (pernyataan 2 salah), nada atas pertama 300 Hz (pernyataan 3 benar)." },
+
+  { tipe: "kategori",
+    stimulus: "Sebuah benda diletakkan 30 cm di depan cermin cekung yang jarak fokusnya 20 cm.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Bayangan yang terbentuk bersifat nyata, terbalik, dan diperbesar.", "Bayangan terbentuk pada jarak 60 cm di depan cermin.", "Jika benda digeser ke jarak 15 cm dari cermin, bayangan tetap bersifat nyata.", "Perbesaran bayangan pada posisi benda 30 cm adalah 2 kali."], kunci: [true, true, false, true],
+    pembahasan: "1/s′ = 1/f − 1/s = 1/20 − 1/30 = 1/60 sehingga s′ = 60 cm (positif: nyata, di depan cermin). Perbesaran M = s′ ÷ s = 60 ÷ 30 = 2 kali dan bayangan terbalik, jadi pernyataan 1, 2, dan 4 benar. Pada s = 15 cm benda berada di antara titik fokus dan cermin (s < f), sehingga bayangan maya, tegak, dan diperbesar; pernyataan 3 salah." },
+
+  { tipe: "kategori",
+    stimulus: "Seorang siswa mengukur arus yang mengalir pada sebuah kawat penghantar ketika tegangan pada ujung-ujungnya diubah-ubah. Hasilnya tampak pada tabel.",
+    tabel: { kepala: ["Tegangan (V)", "2", "4", "6", "8"], baris: [["Arus (mA)", "10", "20", "30", "40"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Hambatan kawat adalah 200 Ω.", "Hambatan kawat bertambah besar ketika tegangan dinaikkan.", "Pada tegangan 10 V, arus yang mengalir diperkirakan 60 mA.", "Pada tegangan 8 V, daya yang diserap kawat adalah 0,32 W."], kunci: [true, false, false, true],
+    pembahasan: "Perbandingan V ÷ I selalu tetap: 2 V ÷ 0,010 A = 200 Ω, sehingga kawat bersifat ohmik dan pernyataan 1 benar, pernyataan 2 salah. Pada 10 V, I = 10 ÷ 200 = 0,05 A = 50 mA, bukan 60 mA (pernyataan 3 salah). Daya pada 8 V: P = V × I = 8 × 0,040 = 0,32 W (pernyataan 4 benar)." },
+
+  { tipe: "kategori",
+    stimulus: "Permukaan sebuah logam memiliki fungsi kerja 2,0 eV. Logam itu disinari tiga cahaya monokromatik dengan energi foton seperti pada tabel.",
+    tabel: { kepala: ["Cahaya", "Energi foton"], baris: [["A", "1,8 eV"], ["B", "2,5 eV"], ["C", "3,0 eV"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Cahaya A tidak menyebabkan terlepasnya fotoelektron.", "Energi kinetik maksimum fotoelektron akibat cahaya B adalah 0,5 eV.", "Jika intensitas cahaya A dinaikkan cukup besar, fotoelektron akan terlepas.", "Potensial henti untuk cahaya C adalah 3,0 V."], kunci: [true, true, false, false],
+    pembahasan: "Fotoelektron hanya terlepas bila energi foton lebih besar dari fungsi kerja. Cahaya A (1,8 eV < 2,0 eV) tidak menimbulkan fotoelektron (pernyataan 1 benar). Ek maks = hf − W: untuk B = 2,5 − 2,0 = 0,5 eV (pernyataan 2 benar). Menaikkan intensitas hanya menambah jumlah foton, bukan energi per foton, sehingga A tetap tidak efektif (pernyataan 3 salah). Untuk C, Ek maks = 1,0 eV sehingga potensial henti 1,0 V, bukan 3,0 V (pernyataan 4 salah)." },
+
+  { tipe: "kategori",
+    stimulus: "Sebuah transformator ideal memiliki 1.200 lilitan primer dan 300 lilitan sekunder. Kumparan primer dihubungkan ke sumber 220 V, sedangkan kumparan sekunder dihubungkan ke resistor 11 Ω.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Transformator ini termasuk jenis penaik tegangan (step-up).", "Tegangan pada kumparan sekunder adalah 55 V.", "Arus pada kumparan primer adalah 1,25 A.", "Daya pada kumparan primer lebih besar daripada daya pada kumparan sekunder."], kunci: [false, true, true, false],
+    pembahasan: "Lilitan sekunder lebih sedikit dari primer, jadi tegangan diturunkan (step-down); pernyataan 1 salah. Vs = Vp × Ns ÷ Np = 220 × 300 ÷ 1.200 = 55 V (pernyataan 2 benar). Is = 55 ÷ 11 = 5 A dan Ip = Is × Ns ÷ Np = 5 × 300 ÷ 1.200 = 1,25 A (pernyataan 3 benar). Pada transformator ideal daya primer sama dengan daya sekunder: 220 × 1,25 = 55 × 5 = 275 W (pernyataan 4 salah)." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Fisika", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Kinematika, dinamika, energi, momentum, fluida, kalor, gelombang, optik, listrik, magnet, fisika modern"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

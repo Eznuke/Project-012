@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Pendidikan Pancasila dan Kewarganegaraan</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Pendidikan Pancasila dan Kewarganegaraan<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA PENDIDIKAN PANCASILA DAN KEWARGANEGARAAN (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-pkn-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Mapel: Pendidikan Pancasila dan Kewarganegaraan (PKn) - 25 soal ===== */
+const TXT_DERMAGA = "Desa Pesisir Wanasari berencana membangun dermaga baru. Panitia pembangunan mengundang rapat desa, tetapi hanya tokoh yang sudah menyatakan setuju yang dihubungi. Kelompok nelayan kecil, yang tempat bersandar perahunya akan tergusur, tidak diundang. Rapat berlangsung singkat, semua yang hadir mengangguk, lalu keputusan diumumkan sebagai “hasil musyawarah desa”.";
+
+const TXT_UNJUK = "Sebuah aksi unjuk rasa damai menolak kenaikan tarif air bersih diikuti ratusan warga di depan kantor kabupaten. Di tengah aksi, sekelompok peserta memblokir jalan sehingga ambulans yang membawa pasien tertahan 20 menit, dan merusak pagar kantor. Polisi kemudian membubarkan kelompok itu, sementara peserta lain yang tertib dibiarkan melanjutkan orasi.";
+
+const TXT_OTDA = "Dua daerah otonom menyampaikan struktur pendapatan tahun anggaran berjalan sebagai berikut.";
+const TABEL_OTDA = { kepala: ["Daerah", "PAD (Rp miliar)", "Dana transfer pusat (Rp miliar)", "Total pendapatan (Rp miliar)"], baris: [["Daerah X", "150", "850", "1.000"], ["Daerah Y", "60", "540", "600"]] };
+
+const TXT_PEMILU = "Pada pemilu di Kecamatan Sidamukti, seorang calon membagikan amplop berisi uang kepada warga sehari sebelum pemungutan suara dan meminta mereka memilihnya. Di salah satu TPS, seorang anggota tim sukses meminta pemilih memperlihatkan surat suara yang sudah dicoblos sebelum dimasukkan ke kotak suara.";
+
+const TXT_PRADUGA = "Seorang pemuda ditangkap polisi atas dugaan pencurian. Sebelum pengadilan memulai sidang, sebuah akun berita daring menulis judul “Pencuri Itu Akhirnya Tertangkap” dan menyebarkan foto wajahnya. Pengacaranya menyatakan bahwa pemberitaan tersebut mencederai asas hukum yang mendasar.";
+
+const TXT_BINEKA = "Kampung Rukun Jaya dihuni warga dari lima suku dan tiga agama. Saat satu keluarga membangun rumah ibadah, warga lain datang bergotong royong tanpa melihat agamanya. Namun, pengurus RT mencatat bahwa ketimpangan penghasilan antara kelompok pendatang dan warga asli sempat memicu saling curiga pada musim paceklik.";
+
+const TXT_TERBUKA = "Pemerintah menyusun regulasi penggunaan kecerdasan buatan (AI) di sekolah. Sebagian pihak berpendapat bahwa Pancasila tidak relevan untuk mengatur teknologi baru karena dirumuskan tahun 1945. Pihak lain menjawab bahwa Pancasila adalah ideologi terbuka sehingga tetap dapat menjadi landasan pengaturan tersebut.";
+
+const TXT_AMANDEMEN = "Pada 1999–2002, bangsa Indonesia mengubah UUD 1945 melalui serangkaian sidang MPR. Perubahan itu mengubah banyak hal dalam sistem ketatanegaraan, misalnya cara memilih presiden dan kedudukan lembaga-lembaga negara.";
+
+const TXT_BEBAS = "Sebuah negara besar mengajak Indonesia bergabung dalam pakta pertahanan bersama untuk menghadapi negara pesaingnya. Pemerintah Indonesia menolak bergabung, tetapi pada tahun yang sama tetap mengirim pasukan penjaga perdamaian ke wilayah konflik di bawah mandat PBB dan menawarkan diri menjadi mediator perundingan.";
+
+const TXT_URUSAN = "Dalam pembagian urusan pemerintahan antara pusat dan daerah menurut UU Pemerintahan Daerah, terdapat urusan pemerintahan absolut yang sepenuhnya menjadi kewenangan pemerintah pusat dan tidak diserahkan kepada daerah.";
+
+const TXT_SIBER = "Layanan data kependudukan di sebuah provinsi lumpuh tiga hari akibat serangan siber. Pemulihan dilakukan bersama: tim teknis pemerintah, pakar keamanan siber dari kampus, penyedia jasa internet swasta, dan warga yang melaporkan kejanggalan layanan. Pemerintah menyatakan bahwa ancaman semacam ini tidak bisa dihadapi oleh satu institusi saja.";
+
+const TXT_PARTISIPASI = "Data partisipasi pemilih dalam pemilihan kepala daerah di Kota Arga pada tiga periode disajikan berikut.";
+const TABEL_PARTISIPASI = { kepala: ["Tahun", "Pemilih terdaftar", "Pemilih yang menggunakan hak pilih"], baris: [["2014", "400.000", "280.000"], ["2019", "450.000", "360.000"], ["2024", "500.000", "350.000"]] };
+
+const TXT_LAGUE = "Di sebuah daerah pemilihan DPRD tersedia 4 kursi. Kursi dibagikan dengan metode Sainte-Laguë: suara sah tiap partai dibagi dengan bilangan ganjil berurutan 1, 3, 5, 7, ..., lalu kursi diberikan kepada hasil bagi terbesar secara berurutan sampai kursi habis. Perolehan suara: Partai A = 6.000; Partai B = 3.500; Partai C = 1.800; Partai D = 1.000.";
+
+const TXT_SILA5 = "Pemerintah kabupaten merancang beberapa program untuk mewujudkan keadilan sosial bagi seluruh rakyat Indonesia di wilayahnya, yang sebagian besar terdiri atas desa terpencil dan kepulauan.";
+
+const TXT_DARURAT = "Setelah gempa besar, pemerintah menetapkan keadaan darurat bencana. Selama masa itu, kegiatan berkumpul di tempat umum dibatasi, perjalanan antardaerah dikendalikan, dan jam operasional pasar dikurangi. Seorang warga bertanya hak apa saja yang masih harus dihormati penuh oleh aparat dalam keadaan apa pun.";
+
+const TXT_DAPUR = "Setelah banjir besar, komunitas pemuda di sebuah kota membuka dapur umum. Dapur itu melayani seluruh korban tanpa menanyakan agama atau suku, dan dikelola relawan dari berbagai latar belakang yang bergiliran memasak. Bahan makanan dikumpulkan dari sumbangan warga dan dibagikan sesuai jumlah anggota keluarga.";
+
+const TXT_BATAS = "Indonesia dan negara tetangganya menandatangani perjanjian penetapan batas maritim di perairan yang selama ini diperselisihkan. Agar perjanjian itu mengikat Indonesia secara hukum, perlu dilakukan pengesahan (ratifikasi) menurut ketentuan UU tentang Perjanjian Internasional.";
+
+const TXT_HAMBERAT = "Menurut UU tentang Pengadilan HAM, tidak semua pelanggaran HAM tergolong pelanggaran HAM yang berat. Pelanggaran HAM berat adalah yang diadili melalui Pengadilan HAM karena sifatnya yang luar biasa.";
+
+const TXT_DWI = "Dewi lahir di Kanada dari ayah dan ibu yang keduanya warga negara Indonesia yang sedang bekerja di sana. Kanada menganut asas ius soli (kewarganegaraan menurut tempat kelahiran), sedangkan Indonesia pada pokoknya menganut asas ius sanguinis (menurut keturunan).";
+
+const TXT_ASEAN = "Dalam sebuah diskusi kelas tentang kerja sama regional, siswa diminta memeriksa kebenaran pernyataan tentang ASEAN, organisasi yang menjadi salah satu pilar politik luar negeri Indonesia.";
+
+const TXT_UU = "Dewan Perwakilan Rakyat dan Presiden telah menyetujui bersama sebuah rancangan undang-undang. Namun, hingga 30 hari sejak persetujuan bersama itu Presiden tidak membubuhkan tanda tangan pengesahan.";
+
+const TXT_PDP = "Sebuah aplikasi pinjaman daring mengakses daftar kontak telepon pengguna tanpa izin yang jelas, lalu mengirim pesan penagihan bernada mengancam kepada teman dan keluarga pengguna yang menunggak. Korban melapor dengan merujuk pada UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.";
+
+const TXT_PIAGAM = "Pada 18 Agustus 1945, PPKI mengesahkan UUD 1945. Dalam rumusan Pembukaan, kalimat pada sila pertama Piagam Jakarta yang memuat tujuh kata tambahan diubah menjadi “Ketuhanan Yang Maha Esa”, setelah ada keberatan dari tokoh dari wilayah timur Indonesia dan Mohammad Hatta menyampaikannya kepada para tokoh Islam, yang bersedia menerima perubahan itu demi kesatuan bangsa.";
+
+const TXT_HOAKS = "Dina menerima pesan berantai di grup keluarga: “Air rebusan daun X terbukti menyembuhkan penyakit Y dalam tiga hari! Sebarkan ke semua orang sebelum dihapus pemerintah!” Pesan itu tidak mencantumkan sumber atau nama peneliti.";
+
+const SOAL = [
+  /* 1 */
+  { tipe: "pg", stimulus: TXT_DERMAGA,
+    pertanyaan: "Kritik yang paling tepat terhadap proses pengambilan keputusan itu dari sudut pandang sila keempat Pancasila adalah ...",
+    opsi: ["Musyawarah harus selalu berakhir dengan kesepakatan bulat tanpa ada yang menolak.", "Musyawarah kehilangan makna karena pihak yang terdampak langsung tidak dilibatkan dalam pembahasan.", "Keputusan pembangunan dermaga seharusnya ditetapkan oleh presiden.", "Hanya kepala desa yang berwenang memutuskan agar proses lebih cepat.", "Pemungutan suara selalu lebih baik daripada musyawarah untuk mufakat."],
+    kunci: 1,
+    pembahasan: "Inti sila keempat adalah kerakyatan yang dipimpin oleh hikmat kebijaksanaan dalam permusyawaratan/perwakilan, yang menuntut partisipasi pihak-pihak terkait. Nelayan kecil yang terdampak tidak diundang, jadi “musyawarah” hanya formalitas. Opsi A salah karena musyawarah tidak mensyaratkan kebulatan suara mutlak; C dan D tidak sesuai karena urusan desa dibahas bersama warga; E salah karena voting adalah jalan terakhir, bukan yang selalu lebih baik." },
+
+  /* 2 */
+  { tipe: "pg", stimulus: "Seorang pedagang kecil menilai bahwa satu pasal dalam sebuah undang-undang tentang perizinan usaha bertentangan dengan hak yang dijamin UUD NRI Tahun 1945 dan merugikan usahanya. Ia ingin mengajukan permohonan secara hukum agar pasal itu dibatalkan.",
+    pertanyaan: "Kepada lembaga manakah permohonan itu seharusnya diajukan?",
+    opsi: ["Mahkamah Agung, karena berwenang menguji undang-undang terhadap UUD.", "Komisi Yudisial, karena berwenang menilai isi undang-undang.", "Dewan Perwakilan Daerah, karena mewakili kepentingan daerah.", "Mahkamah Konstitusi, karena berwenang menguji undang-undang terhadap UUD.", "Ombudsman, karena menangani pelayanan publik yang merugikan warga."],
+    kunci: 3,
+    pembahasan: "Pengujian undang-undang terhadap UUD NRI 1945 adalah kewenangan Mahkamah Konstitusi. Mahkamah Agung hanya menguji peraturan di bawah undang-undang terhadap undang-undang. KY mengawasi perilaku hakim, DPD tidak menguji UU, dan Ombudsman mengawasi maladministrasi pelayanan publik." },
+
+  /* 3 */
+  { tipe: "mcma", stimulus: TXT_UNJUK, pertanyaan: "Pilih semua pernyataan yang benar mengenai kasus tersebut.",
+    opsi: ["Menyampaikan pendapat di muka umum adalah hak yang dijamin konstitusi.", "Hak menyampaikan pendapat tidak dapat dibatasi dengan alasan apa pun.", "Pembatasan hak boleh ditetapkan dengan undang-undang untuk menjamin pengakuan dan penghormatan hak orang lain.", "Memblokir jalan ambulans mengabaikan hak orang lain atas keselamatan dan layanan kesehatan.", "Negara berhak melarang semua unjuk rasa demi menjaga ketertiban."],
+    kunci: [0, 2, 3],
+    pembahasan: "(A) benar: kebebasan menyampaikan pendapat dijamin UUD NRI 1945. (C) benar: Pasal 28J ayat (2) membolehkan pembatasan melalui undang-undang untuk menghormati hak orang lain, ketertiban, dan moral. (D) benar: tertahannya ambulans merugikan hak pasien. (B) salah karena hak tidak mutlak, dan (E) salah karena larangan total meniadakan hak yang dijamin." },
+
+  /* 4 */
+  { tipe: "pg", stimulus: TXT_OTDA, tabel: TABEL_OTDA,
+    pertanyaan: "Simpulan yang paling tepat tentang kemandirian fiskal kedua daerah adalah ...",
+    opsi: ["Daerah Y lebih mandiri karena total pendapatannya lebih kecil.", "Daerah Y lebih mandiri karena dana transfernya lebih sedikit secara nominal.", "Daerah X lebih mandiri karena PAD-nya 15% dari total pendapatan, sedangkan Daerah Y 10%.", "Kedua daerah sama mandiri karena sama-sama bergantung pada dana transfer.", "Kemandirian fiskal tidak dapat dinilai dari PAD."],
+    kunci: 2,
+    pembahasan: "Kemandirian fiskal dilihat dari porsi PAD terhadap total pendapatan: X = 150/1.000 = 15%, Y = 60/600 = 10%. Jadi X relatif lebih mandiri. Nilai nominal (opsi A dan B) tidak menunjukkan proporsi; opsi D keliru karena porsinya berbeda; opsi E keliru karena PAD adalah indikator utama." },
+
+  /* 5 */
+  { tipe: "kategori", stimulus: TXT_PEMILU, pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Presiden dan wakil presiden dipilih langsung oleh rakyat melalui pemilu sejak 2004.", "Pembagian uang kepada pemilih agar memilih calon tertentu bertentangan dengan asas jujur dan adil.", "Calon anggota DPD wajib diusulkan oleh partai politik peserta pemilu.", "Asas rahasia membolehkan tim sukses meminta pemilih memperlihatkan surat suaranya."],
+    kunci: [true, true, false, false],
+    pembahasan: "Pemilihan presiden secara langsung dimulai 2004 (benar). Politik uang merusak asas jujur dan adil (benar). Calon DPD adalah perseorangan, bukan usulan partai (salah). Asas rahasia melindungi pilihan pemilih, tidak boleh dipaksa menunjukkannya (salah)." },
+
+  /* 6 */
+  { tipe: "pg", stimulus: TXT_PRADUGA, pertanyaan: "Asas hukum yang dimaksud pengacara tersebut adalah ...",
+    opsi: ["Asas praduga tak bersalah: seseorang dianggap tidak bersalah sampai ada putusan pengadilan yang berkekuatan hukum tetap.", "Asas legalitas: tidak ada perbuatan yang dapat dipidana tanpa aturan sebelumnya.", "Asas persamaan di hadapan hukum: semua warga memiliki kedudukan yang sama.", "Asas nebis in idem: seseorang tidak boleh diadili dua kali untuk perkara yang sama.", "Asas retroaktif: hukum berlaku surut terhadap perbuatan sebelumnya."],
+    kunci: 0,
+    pembahasan: "Pemberitaan yang memastikan tersangka sebagai pencuri sebelum putusan pengadilan melanggar asas praduga tak bersalah. Asas lain (legalitas, persamaan di hadapan hukum, nebis in idem, retroaktif) tidak berkaitan dengan inti kasus ini." },
+
+  /* 7 */
+  { tipe: "mcma", stimulus: TXT_BINEKA, pertanyaan: "Pilih semua pernyataan yang tepat berdasarkan kasus tersebut.",
+    opsi: ["Integrasi nasional hanya tercapai bila seluruh budaya dilebur menjadi satu budaya tunggal.", "Bhinneka Tunggal Ika mengakui keberagaman sebagai bagian dari persatuan.", "Interaksi dan kerja sama lintas kelompok, seperti gotong royong, memperkuat integrasi.", "Perbedaan agama selalu menyebabkan konflik di masyarakat.", "Ketimpangan ekonomi antarkelompok dapat menumbuhkan prasangka yang menghambat integrasi."],
+    kunci: [1, 2, 4],
+    pembahasan: "(B), (C), dan (E) sesuai kasus: keberagaman dirangkul dalam persatuan, gotong royong mempererat, dan ketimpangan memicu curiga. (A) salah karena integrasi tidak berarti peleburan; (D) salah karena kasus menunjukkan perbedaan agama bisa hidup rukun." },
+
+  /* 8 */
+  { tipe: "pg", stimulus: TXT_TERBUKA, pertanyaan: "Pernyataan yang paling tepat tentang Pancasila sebagai ideologi terbuka dalam kasus itu adalah ...",
+    opsi: ["Nilai dasar Pancasila dapat diganti bila zaman berubah.", "Terbuka berarti Pancasila tidak memiliki rumusan yang baku.", "Pancasila dapat menerima ideologi asing apa adanya agar tidak tertinggal.", "Pancasila hanya berlaku untuk urusan politik dan tidak untuk teknologi.", "Nilai dasarnya tetap, sedangkan nilai instrumental dan praksisnya dikembangkan secara kreatif sesuai tantangan zaman tanpa bertentangan dengan nilai dasar."],
+    kunci: 4,
+    pembahasan: "Keterbukaan ideologi Pancasila berarti nilai dasar (lima sila) tetap, sedangkan nilai instrumental (aturan) dan praksis (penerapan) disesuaikan dengan perkembangan, termasuk teknologi seperti AI. Opsi A, B, C, D keliru karena menganggap nilai dasar dapat berubah, tidak baku, menyerap asing tanpa seleksi, atau terbatas pada politik." },
+
+  /* 9 */
+  { tipe: "kategori", stimulus: TXT_AMANDEMEN, pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["UUD 1945 diamandemen sebanyak empat kali pada kurun 1999–2002.", "Pembukaan UUD 1945 termasuk bagian yang dapat diubah melalui amandemen pasal-pasalnya.", "Setelah amandemen, MPR tidak lagi berkedudukan sebagai lembaga tertinggi negara.", "Setelah amandemen, presiden dan wakil presiden tetap dipilih oleh MPR."],
+    kunci: [true, false, true, false],
+    pembahasan: "Amandemen dilakukan empat kali (1999, 2000, 2001, 2002): benar. Pembukaan tidak diubah, yang diamandemen adalah batang tubuh: salah. MPR menjadi lembaga negara yang sejajar: benar. Presiden dipilih langsung rakyat: salah." },
+
+  /* 10 */
+  { tipe: "pg", stimulus: TXT_BEBAS, pertanyaan: "Sikap pemerintah Indonesia tersebut paling tepat menggambarkan prinsip ...",
+    opsi: ["Isolasionisme: menutup diri dari urusan internasional.", "Netralitas permanen: tidak terlibat urusan internasional seperti Swiss.", "Politik luar negeri bebas aktif: tidak memihak blok kekuatan, tetapi aktif menjaga perdamaian dunia.", "Politik mercusuar: menonjolkan proyek prestisius di hadapan dunia.", "Politik konfrontasi: menghadapi negara lain dengan kekuatan militer."],
+    kunci: 2,
+    pembahasan: "Menolak pakta pertahanan menunjukkan “bebas” (tidak memihak blok), sedangkan mengirim pasukan perdamaian dan menawarkan mediasi menunjukkan “aktif”. Isolasionisme dan netralitas permanen tidak sesuai karena Indonesia tetap terlibat aktif." },
+
+  /* 11 */
+  { tipe: "mcma", stimulus: TXT_URUSAN, pertanyaan: "Pilih semua urusan yang termasuk urusan pemerintahan absolut pemerintah pusat.",
+    opsi: ["Pertahanan negara", "Kebijakan moneter dan fiskal nasional", "Penataan ruang kabupaten", "Politik luar negeri", "Pengelolaan pasar tradisional"],
+    kunci: [0, 1, 3],
+    pembahasan: "Urusan absolut meliputi politik luar negeri, pertahanan, keamanan, yustisi, moneter dan fiskal nasional, serta agama. Penataan ruang kabupaten dan pengelolaan pasar tradisional termasuk urusan konkuren yang dapat dikelola daerah." },
+
+  /* 12 */
+  { tipe: "pg", stimulus: TXT_SIBER, pertanyaan: "Pendekatan yang digambarkan dalam kasus itu paling sesuai dengan prinsip ...",
+    opsi: ["Pertahanan yang dijalankan oleh TNI saja karena ancaman bersenjata.", "Pertahanan yang diserahkan kepada negara lain yang bersekutu.", "Pertahanan yang dibatasi pada wilayah perbatasan darat.", "Sistem pertahanan semesta yang melibatkan seluruh warga, wilayah, dan sumber daya nasional secara terpadu.", "Pertahanan yang hanya berfokus pada kekuatan senjata modern."],
+    kunci: 3,
+    pembahasan: "Ancaman siber termasuk ancaman nonmiliter dan ditangani dengan melibatkan seluruh komponen bangsa sesuai sistem pertahanan dan keamanan rakyat semesta. Opsi lain terlalu sempit atau mengandalkan pihak tertentu saja." },
+
+  /* 13 */
+  { tipe: "kategori", stimulus: TXT_PARTISIPASI, tabel: TABEL_PARTISIPASI, pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Persentase partisipasi tertinggi terjadi pada tahun 2019.", "Persentase partisipasi tahun 2024 lebih tinggi daripada tahun 2019.", "Pada tahun 2019 terdapat 90.000 pemilih terdaftar yang tidak menggunakan hak pilih.", "Pada tahun 2014 jumlah pemilih yang tidak menggunakan hak pilih sebanyak 100.000."],
+    kunci: [true, false, true, false],
+    pembahasan: "Partisipasi: 2014 = 280.000/400.000 = 70%; 2019 = 360.000/450.000 = 80%; 2024 = 350.000/500.000 = 70%. Jadi 2019 tertinggi (benar), 2024 turun (salah). Tidak memilih 2019 = 450.000 − 360.000 = 90.000 (benar); 2014 = 400.000 − 280.000 = 120.000, bukan 100.000 (salah)." },
+
+  /* 14 */
+  { tipe: "pg", stimulus: TXT_LAGUE, pertanyaan: "Berapa kursi yang diperoleh Partai A?",
+    opsi: ["1 kursi", "2 kursi", "3 kursi", "4 kursi", "Tidak mendapat kursi"],
+    kunci: 1,
+    pembahasan: "Hasil bagi: A = 6.000; 2.000; B = 3.500; 1.166,7; C = 1.800; 600; D = 1.000. Empat terbesar berurutan: 6.000 (A), 3.500 (B), 2.000 (A), 1.800 (C). Jadi A mendapat 2 kursi. Jawaban 3 kursi muncul bila keliru memakai pembagi 1, 2, 3 (metode D'Hondt)." },
+
+  /* 15 */
+  { tipe: "mcma", stimulus: TXT_SILA5, pertanyaan: "Pilih semua program yang mencerminkan nilai sila kelima, keadilan sosial bagi seluruh rakyat Indonesia.",
+    opsi: ["Membangun puskesmas pembantu di desa terpencil dan kepulauan.", "Memberikan proyek pembangunan kepada kerabat pejabat tanpa lelang.", "Menyalurkan dana pembangunan hanya ke daerah pendukung kepala daerah.", "Menyalurkan bantuan sosial secara tepat sasaran berdasarkan data kesejahteraan penduduk.", "Memberikan beasiswa afirmasi bagi siswa dari keluarga kurang mampu."],
+    kunci: [0, 3, 4],
+    pembahasan: "Sila kelima menekankan pemerataan dan keberpihakan pada yang membutuhkan: layanan kesehatan di wilayah terpencil, bantuan tepat sasaran, dan beasiswa afirmasi. Nepotisme dan diskriminasi pendanaan berdasarkan dukungan politik bertentangan dengan keadilan sosial." },
+
+  /* 16 */
+  { tipe: "pg", stimulus: TXT_DARURAT, pertanyaan: "Hak yang tidak boleh dikurangi dalam keadaan apa pun, sesuai Pasal 28I ayat (1) UUD NRI 1945, adalah ...",
+    opsi: ["hak untuk tidak disiksa", "hak berkumpul di tempat umum", "hak bepergian antardaerah", "hak menyampaikan pendapat melalui unjuk rasa", "hak memperoleh fasilitas umum tanpa batas jam"],
+    kunci: 0,
+    pembahasan: "Pasal 28I ayat (1) menyebut hak yang tidak dapat dikurangi dalam keadaan apa pun, antara lain hak hidup, hak untuk tidak disiksa, kebebasan pikiran dan hati nurani, serta beragama. Kebebasan berkumpul dan bergerak termasuk hak yang dapat dibatasi untuk kepentingan umum." },
+
+  /* 17 */
+  { tipe: "kategori", stimulus: TXT_DAPUR, pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Pelayanan kepada semua korban tanpa membedakan agama mencerminkan nilai kemanusiaan yang adil dan beradab.", "Kegiatan gotong royong itu hanya berkaitan dengan sila ketiga dan tidak dengan sila lain.", "Sila-sila Pancasila saling menjiwai dan membentuk satu kesatuan nilai.", "Sila pertama mengharuskan warga hanya bergaul dengan pemeluk agama yang sama."],
+    kunci: [true, false, true, false],
+    pembahasan: "Pelayanan tanpa diskriminasi mencerminkan sila kedua (benar). Gotong royong juga terkait sila kedua dan kelima, jadi pernyataan 'hanya sila ketiga' salah. Pancasila adalah kesatuan yang saling menjiwai (benar). Sila pertama menjamin kebebasan beragama dan toleransi, bukan pembatasan pergaulan (salah)." },
+
+  /* 18 */
+  { tipe: "pg", stimulus: TXT_BATAS, pertanyaan: "Bentuk pengesahan yang tepat untuk perjanjian tersebut adalah ...",
+    opsi: ["Keputusan presiden, karena perjanjian bersifat teknis.", "Peraturan menteri luar negeri, karena menteri yang menandatangani.", "Undang-undang, karena perjanjian menyangkut penetapan batas wilayah dan kedaulatan negara.", "Putusan Mahkamah Konstitusi, karena menyangkut sengketa.", "Ketetapan MPR, karena menyangkut dasar negara."],
+    kunci: 2,
+    pembahasan: "UU No. 24 Tahun 2000 mengatur bahwa perjanjian tentang masalah politik, perdamaian, pertahanan dan keamanan, perubahan atau penetapan batas wilayah, kedaulatan, HAM, lingkungan hidup, kaidah hukum baru, serta pinjaman luar negeri disahkan dengan undang-undang. Perjanjian lain cukup dengan keputusan presiden." },
+
+  /* 19 */
+  { tipe: "mcma", stimulus: TXT_HAMBERAT, pertanyaan: "Pilih semua tindakan yang termasuk pelanggaran HAM berat.",
+    opsi: ["Pemusnahan sebagian kelompok etnis tertentu secara sistematis (genosida)", "Pencurian telepon genggam di terminal", "Serangan meluas dan sistematis terhadap penduduk sipil, misalnya pembunuhan atau penghilangan paksa (kejahatan terhadap kemanusiaan)", "Perselisihan pembagian warisan dalam keluarga", "Setiap pemukulan oleh aparat terhadap warga otomatis tergolong pelanggaran HAM berat"],
+    kunci: [0, 2],
+    pembahasan: "UU Pengadilan HAM menetapkan dua jenis pelanggaran HAM berat: genosida dan kejahatan terhadap kemanusiaan. Pencurian dan sengketa warisan adalah perkara pidana atau perdata biasa. Satu kasus pemukulan tidak otomatis berat; perlu unsur meluas atau sistematis." },
+
+  /* 20 */
+  { tipe: "pg", stimulus: TXT_DWI, pertanyaan: "Status kewarganegaraan Dewi menurut ketentuan kewarganegaraan Indonesia adalah ...",
+    opsi: ["Hanya warga negara Kanada, sebab lahir di Kanada.", "Hanya warga negara Indonesia, dan status Kanada gugur otomatis.", "Tanpa kewarganegaraan (apatride) karena kedua asas bertabrakan.", "Warga negara Indonesia yang harus segera melepaskan status Indonesia.", "Berkewarganegaraan ganda terbatas dan harus memilih salah satu setelah dewasa sesuai ketentuan."],
+    kunci: 4,
+    pembahasan: "Dewi WNI karena orang tuanya WNI (ius sanguinis) sekaligus warga Kanada karena kelahiran (ius soli) sehingga bipatride. UU No. 12 Tahun 2006 mengakui kewarganegaraan ganda terbatas bagi anak, dan setelah berusia 18 tahun atau menikah ia harus memilih salah satu. Opsi A dan D mengabaikan hak yang dimilikinya; C keliru karena ia memiliki dua kewarganegaraan, bukan nol." },
+
+  /* 21 */
+  { tipe: "mcma", stimulus: TXT_ASEAN, pertanyaan: "Pilih semua pernyataan yang benar tentang ASEAN.",
+    opsi: ["ASEAN didirikan pada tahun 1945 di Jakarta.", "ASEAN didirikan pada 8 Agustus 1967 di Bangkok melalui Deklarasi Bangkok.", "Pendiri ASEAN adalah lima negara: Indonesia, Malaysia, Filipina, Singapura, dan Thailand.", "ASEAN mewajibkan negara anggota mengintervensi urusan dalam negeri anggota lain.", "Salah satu prinsip ASEAN adalah tidak mencampuri urusan dalam negeri negara anggota."],
+    kunci: [1, 2, 4],
+    pembahasan: "ASEAN dibentuk 8 Agustus 1967 di Bangkok oleh lima negara pendiri, dan prinsip non-intervensi adalah salah satu pegangannya. 1945 adalah tahun kemerdekaan Indonesia, bukan pendirian ASEAN; prinsip ASEAN justru melarang intervensi." },
+
+  /* 22 */
+  { tipe: "pg", stimulus: TXT_UU, pertanyaan: "Menurut UUD NRI 1945, status rancangan undang-undang tersebut adalah ...",
+    opsi: ["Batal demi hukum dan harus dibahas ulang oleh DPR.", "Sah menjadi undang-undang dan wajib diundangkan.", "Menunggu persetujuan Mahkamah Konstitusi.", "Tetap rancangan sampai presiden menandatangani.", "Dikembalikan ke DPR untuk dibahas pada masa sidang berikutnya."],
+    kunci: 1,
+    pembahasan: "Pasal 20 ayat (5) UUD NRI 1945: jika RUU yang telah disetujui bersama tidak disahkan presiden dalam waktu 30 hari sejak disetujui, RUU itu sah menjadi undang-undang dan wajib diundangkan. Jadi jawaban lain keliru." },
+
+  /* 23 */
+  { tipe: "kategori", stimulus: TXT_PDP, pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Data pribadi yang pernah diunggah ke media sosial bebas dipakai siapa pun untuk tujuan apa pun.", "UU No. 27 Tahun 2022 mengatur pelindungan data pribadi dan hak pemilik data.", "Pemrosesan data pribadi pada prinsipnya memerlukan dasar yang sah, misalnya persetujuan pemilik data.", "Penyelenggara aplikasi tidak bertanggung jawab atas penyalahgunaan data pengguna."],
+    kunci: [false, true, true, false],
+    pembahasan: "Data yang terbuka tetap dilindungi dan tidak bebas dipakai (salah pada pernyataan 1). UU PDP mengatur hak subjek data dan kewajiban pengendali data (benar), dan pemrosesan memerlukan dasar hukum seperti persetujuan (benar). Penyelenggara sebagai pengendali data bertanggung jawab (pernyataan 4 salah)." },
+
+  /* 24 */
+  { tipe: "pg", stimulus: TXT_PIAGAM, pertanyaan: "Sikap yang paling tepat ditunjukkan para tokoh bangsa dalam peristiwa tersebut adalah ...",
+    opsi: ["Mengutamakan kepentingan golongan mayoritas dibanding kelompok lain.", "Menunda pengesahan UUD sampai seluruh pihak menyetujui rumusan semula.", "Meniru rumusan dasar negara dari negara lain agar diakui dunia.", "Mengutamakan persatuan dan bersedia berkompromi demi kepentingan bangsa.", "Menyerahkan keputusan sepenuhnya kepada pemerintah kolonial."],
+    kunci: 3,
+    pembahasan: "Para tokoh Islam rela menerima perubahan rumusan demi persatuan, sementara tokoh dari wilayah timur menyampaikan keberatan dengan cara damai. Ini mencerminkan semangat musyawarah dan persatuan. Opsi lain tidak sesuai fakta: pengesahan tidak ditunda dan rumusan tidak ditiru dari negara lain." },
+
+  /* 25 */
+  { tipe: "mcma", stimulus: TXT_HOAKS, pertanyaan: "Pilih semua tindakan Dina yang sesuai dengan etika bermedia digital.",
+    opsi: ["Memeriksa kebenaran informasi melalui situs resmi atau situs cek fakta.", "Membagikan dahulu ke grup lain dengan alasan siapa tahu bermanfaat.", "Menahan diri tidak membagikan pesan sampai informasinya terverifikasi.", "Menghina pembuat pesan di grup agar jera.", "Melaporkan konten ke penyelenggara platform jika terbukti menyesatkan."],
+    kunci: [0, 2, 4],
+    pembahasan: "Literasi digital menuntut verifikasi sebelum berbagi (A, C) dan melaporkan konten menyesatkan (E). Membagikan tanpa cek ikut menyebarkan hoaks (B), dan menghina orang melanggar etika berkomunikasi (D)." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "PPKn", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Nilai Pancasila, UUD NRI 1945, hak dan kewajiban, demokrasi, hukum dan HAM, kebinekaan, ketahanan nasional"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

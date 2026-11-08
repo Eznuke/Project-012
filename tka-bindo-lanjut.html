@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Bahasa Indonesia Tingkat Lanjut</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Bahasa Indonesia Tingkat Lanjut<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA BAHASA INDONESIA TINGKAT LANJUT (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-bindo-lanjut-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Bahasa Indonesia Tingkat Lanjut (TKA SMA) ===== */
+const PUISI = "Senja di Dermaga Tua — Perahu-perahu menunduk di pangkuan air, / tali tambatnya lapuk dimakan garam. / Angin membawa kabar dari seberang, / tentang anak-anak yang tak lagi pulang. // Ibu masih menjerang rindu tiap petang, / menaruh dua cangkir di meja kayu. / Satu untuk dirinya yang setia menunggu, / satu untuk laut yang berutang janji.";
+
+const CERPEN = "Jam Saku Kakek (kutipan). Setiap sore, Kakek duduk di beranda sambil membuka jam sakunya, lalu menutupnya lagi tanpa melihat angka. Jam itu sudah mati sejak aku masih kecil. Aku pernah menawarkan diri membawanya ke tukang reparasi di pasar, tetapi Kakek menggeleng pelan. “Yang rusak bukan jamnya,” katanya, “hanya waktunya yang berhenti di tempat yang kusuka.” Aku tidak mengerti ucapan itu sampai Kakek berpulang. Di dalam tutup jam itu kutemukan foto kecil Nenek dan secarik kertas bertuliskan tanggal pernikahan mereka. Jarum jam terhenti tepat pada pukul sepuluh lewat lima menit, saat mereka pertama kali bertukar cincin. Sejak hari itu, aku tidak lagi menganggap benda tua sebagai barang rongsokan. Di mataku, jam saku itu kini berdetak, bukan dengan roda-roda kecil, melainkan dengan kenangan yang tak mau pergi.";
+
+const EDITORIAL = "Larangan Total Gawai di Sekolah Bukan Jawaban. Sejumlah sekolah belakangan ini melarang siswa membawa gawai dengan alasan mengganggu konsentrasi belajar. Alasan itu masuk akal, tetapi larangan total bukanlah jawaban yang tepat. Pertama, gawai kini menjadi sarana belajar: kamus daring, simulasi sains, hingga tugas yang dikumpulkan melalui platform sekolah. Menyita perangkat sama dengan menutup pintu perpustakaan sambil mengeluhkan siswa yang malas membaca. Kedua, sebuah survei internal di satu SMA menemukan bahwa 62 persen siswa yang gawainya dikumpulkan pada pagi hari mengaku lebih sering membuka media sosial saat jam istirahat. Artinya, larangan hanya memindahkan masalah, bukan menyelesaikannya. Apakah kita ingin siswa patuh karena takut, atau cakap karena terbiasa? Sekolah semestinya menetapkan aturan penggunaan yang jelas, yaitu kapan gawai boleh dipakai dan untuk keperluan apa, sambil melatih kemandirian siswa. Mendidik tentu lebih sulit daripada melarang, tetapi hanya itulah yang membuahkan hasil jangka panjang.";
+
+const DRAMA = "Ruang tamu sederhana. Bu Laras sedang menjahit. Dimas masuk membawa tas, wajahnya tegang. // DIMAS: (meletakkan tas dengan keras) Aku tidak mau ikut lomba itu, Bu. // BU LARAS: (tanpa menoleh, jarum tetap bergerak) Kemarin kau bilang sudah berlatih tiga bulan. // DIMAS: Itu kemarin. Hari ini aku tahu juri lombanya Pak Anwar, guru yang dulu melatih Kak Raka. Pasti aku dibandingkan dengannya. // BU LARAS: (berhenti menjahit, menatap Dimas) Jadi yang kau takutkan bukan lombanya, melainkan perbandingannya? // DIMAS: (menunduk) Aku capek selalu dianggap bayang-bayang Kak Raka. // BU LARAS: (berdiri, mengambil jaket dari kursi) Bayang-bayang hanya ada kalau kau berdiri membelakangi cahaya. Pakai jaketmu. Kita berangkat.";
+
+const RESENSI = "Resensi novel Pelabuhan Terakhir (karya fiktif Nadia Wirasti). Novel setebal 312 halaman ini mengisahkan Sari, nelayan perempuan yang mempertahankan pelabuhan kecil dari rencana reklamasi. Kekuatan novel terletak pada latar yang hidup; pembaca seakan dapat mencium bau garam dan ikan asin dari lembar-lembarnya. Namun, tokoh-tokoh pendukung terasa datar, dan konflik di sepertiga akhir diselesaikan terlalu tergesa-gesa. Meski begitu, novel ini layak dibaca oleh siapa pun yang ingin memahami bahwa kampung nelayan bukan sekadar objek wisata, melainkan ruang hidup.";
+
+const SOAL = [
+  /* ---------- Puisi (1-4) ---------- */
+  { tipe: "pg", stimulus: PUISI,
+    pertanyaan: "Tema yang paling tepat untuk puisi tersebut adalah ...",
+    opsi: ["kemegahan dermaga tua pada waktu senja", "kesetiaan seorang ibu menanti anaknya yang tak kunjung pulang dari laut", "kemarahan nelayan terhadap laut yang ganas", "kegembiraan keluarga nelayan ketika hasil tangkapan melimpah", "keindahan senja yang menenangkan para pelaut"], kunci: 1,
+    pembahasan: "Larik-larik kunci: “anak-anak yang tak lagi pulang”, “Ibu masih menjerang rindu”, dua cangkir di meja, dan “laut yang berutang janji”. Semuanya mengarah pada penantian setia seorang ibu. Pilihan lain hanya menangkap latar (dermaga, senja) atau suasana yang tidak ada dalam puisi (marah, gembira)." },
+
+  { tipe: "pg", stimulus: PUISI,
+    pertanyaan: "Majas yang digunakan pada larik “Perahu-perahu menunduk di pangkuan air” adalah ...",
+    opsi: ["hiperbola", "ironi", "personifikasi", "litotes", "paradoks"], kunci: 2,
+    pembahasan: "Perahu (benda mati) digambarkan “menunduk” dan air memiliki “pangkuan”, yaitu sifat dan perbuatan manusia. Itu adalah personifikasi. Tidak ada pelebihan makna (hiperbola), sindiran (ironi), perendahan diri (litotes), atau pertentangan yang tampak (paradoks)." },
+
+  { tipe: "mcma", stimulus: PUISI,
+    pertanyaan: "Pilih semua pernyataan yang sesuai dengan puisi tersebut.",
+    opsi: ["Puisi bernada riang karena melukiskan keindahan senja.", "Larik “tali tambatnya lapuk dimakan garam” memperlihatkan kerusakan akibat air laut dan waktu.", "Dua cangkir di meja menunjukkan bahwa ibu belum melepaskan harapan akan kembalinya yang ia tunggu.", "Puisi menyatakan secara eksplisit bahwa anak-anak telah meninggal di laut.", "“Menjerang rindu” adalah metafora: rindu diibaratkan air yang terus dijerang dan dijaga tiap petang."], kunci: [1, 2, 4],
+    pembahasan: "B benar: tali lapuk menandakan lamanya waktu dan garam laut. C benar: cangkir untuk “laut” dan untuk ibu menandakan penantian masih berlangsung. E benar: “menjerang” biasanya untuk air, di sini dikenakan pada rindu. A salah: nada puisi sendu dan sunyi. D salah: puisi hanya menyebut anak-anak “tak lagi pulang” tanpa menyatakan penyebabnya." },
+
+  { tipe: "kategori", stimulus: PUISI,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah berdasarkan puisi.",
+    pernyataan: ["Judul “Senja di Dermaga Tua” selaras dengan suasana sunyi dan penuh penantian dalam isi puisi.", "Pada larik terakhir, laut dipandang sebagai pihak yang berutang janji, sehingga terdapat personifikasi.", "Latar waktu dalam puisi adalah pagi hari.", "Pembicara dalam puisi adalah ibu itu sendiri yang berbicara dengan kata ganti “aku”."], kunci: [true, true, false, false],
+    pembahasan: "(1) Benar: senja, dermaga tua, dan penantian membangun suasana sunyi. (2) Benar: laut diberi sifat manusia yang dapat berutang janji. (3) Salah: latar waktu adalah senja dan petang. (4) Salah: tidak ada kata ganti “aku”; pembicara mengamati ibu dari luar (“Ibu masih menjerang rindu”, “dirinya”)." },
+
+  /* ---------- Cerpen (5-8) ---------- */
+  { tipe: "pg", stimulus: CERPEN,
+    pertanyaan: "Sudut pandang yang digunakan dalam kutipan cerpen tersebut adalah ...",
+    opsi: ["orang pertama, narator terlibat dalam cerita sebagai “aku”", "orang kedua, narator berbicara kepada pembaca sebagai “kamu”", "orang ketiga serba tahu, narator mengetahui isi pikiran semua tokoh", "orang ketiga terbatas, narator hanya mengikuti Kakek", "sudut pandang campuran, berganti-ganti antartokoh"], kunci: 0,
+    pembahasan: "Kata ganti “aku” (“aku masih kecil”, “kutemukan”) menunjukkan narator ikut terlibat dalam cerita, yaitu sudut pandang orang pertama. Tidak ada sapaan “kamu” kepada pembaca, dan narator tidak mengetahui isi pikiran Kakek (ia baru mengerti setelah menemukan foto dan kertas)." },
+
+  { tipe: "pg", stimulus: CERPEN,
+    pertanyaan: "Makna ucapan Kakek, “Yang rusak bukan jamnya, hanya waktunya yang berhenti di tempat yang kusuka,” adalah ...",
+    opsi: ["Kakek tidak mampu membayar biaya reparasi jam", "Kakek menganggap tukang jam di pasar tidak cakap", "Kakek lupa cara memutar jam saku itu", "Kakek sengaja membiarkan jam berhenti karena ia ingin tetap bersama kenangan indah masa lalunya", "Kakek ingin jam itu diganti dengan jam yang baru"], kunci: 3,
+    pembahasan: "Jarum jam berhenti pada saat Kakek dan Nenek bertukar cincin. Kakek menolak memperbaikinya karena “waktu yang berhenti” itu adalah saat yang ia sukai dan ingin ia kenang. Pilihan lain tidak didukung teks." },
+
+  { tipe: "mcma", stimulus: CERPEN,
+    pertanyaan: "Pilih semua pernyataan yang benar mengenai unsur intrinsik kutipan cerpen tersebut.",
+    opsi: ["Konflik utama cerita adalah pertengkaran Kakek dan narator tentang rencana menjual jam.", "Jam saku yang berhenti menjadi simbol kenangan Kakek akan Nenek.", "Latar utama pada pembukaan cerita adalah pasar tempat jam diperbaiki.", "Narator baru memahami ucapan Kakek setelah menemukan foto Nenek dan secarik kertas di dalam jam.", "Amanat cerita: benda yang tampak usang dapat menyimpan nilai kenangan yang berharga."], kunci: [1, 3, 4],
+    pembahasan: "B, D, dan E sesuai teks. A salah karena tidak ada pertengkaran; Kakek hanya menggeleng pelan. C salah karena latar pembuka adalah beranda pada sore hari; pasar hanya disebut sebagai tempat reparasi yang ditolak." },
+
+  { tipe: "pg", stimulus: CERPEN,
+    pertanyaan: "Tokoh Kakek dalam kutipan dilukiskan terutama dengan teknik ...",
+    opsi: ["analitik, karena narator menyebutkan sifat Kakek secara langsung", "tidak langsung lewat pendapat tokoh lain tentang Kakek", "monolog batin Kakek yang diungkapkan panjang lebar", "deskripsi ciri fisik semata, seperti rambut dan pakaian", "dramatik, yaitu lewat tindakan dan ucapan Kakek"], kunci: 4,
+    pembahasan: "Watak Kakek tampak dari perbuatannya (membuka dan menutup jam, menggeleng pelan) dan ucapannya yang bermakna dalam. Narator tidak menyebut sifatnya langsung, tidak ada pendapat tokoh lain, tidak ada monolog batin Kakek, dan ciri fisik tidak dideskripsikan. Itu adalah teknik dramatik." },
+
+  /* ---------- Editorial (9-12) ---------- */
+  { tipe: "pg", stimulus: EDITORIAL,
+    pertanyaan: "Pendapat (tesis) penulis dalam editorial tersebut adalah ...",
+    opsi: ["Gawai harus dilarang sepenuhnya di sekolah", "Larangan total gawai kurang tepat; sekolah sebaiknya membuat aturan penggunaan yang jelas sambil melatih kemandirian siswa", "Survei membuktikan bahwa semua siswa kecanduan media sosial", "Gawai hanya cocok dipakai untuk pelajaran sains", "Guru perlu dilatih menggunakan platform daring"], kunci: 1,
+    pembahasan: "Penulis menyatakan bahwa larangan total “bukanlah jawaban yang tepat” dan menawarkan aturan penggunaan yang jelas serta pelatihan kemandirian. A berlawanan dengan tesis; C berlebihan dari data survei; D dan E tidak ada dalam teks." },
+
+  { tipe: "mcma", stimulus: EDITORIAL,
+    pertanyaan: "Pilih semua pernyataan yang merupakan opini (pendapat) penulis, bukan fakta.",
+    opsi: ["Sejumlah sekolah melarang siswa membawa gawai.", "Larangan total bukanlah jawaban yang tepat.", "Sebuah survei internal di satu SMA menemukan bahwa 62 persen siswa mengaku lebih sering membuka media sosial saat istirahat.", "Sekolah semestinya menetapkan aturan penggunaan yang jelas.", "Mendidik tentu lebih sulit daripada melarang."], kunci: [1, 3, 4],
+    pembahasan: "Opini berisi penilaian atau anjuran: B (penilaian), D (anjuran dengan kata “semestinya”), E (penilaian perbandingan). A adalah fakta yang dapat diverifikasi, dan C adalah data hasil survei." },
+
+  { tipe: "kategori", stimulus: EDITORIAL,
+    pertanyaan: "Tentukan apakah setiap pernyataan tentang strategi penulisan editorial berikut Benar atau Salah.",
+    pernyataan: ["Kalimat “Apakah kita ingin siswa patuh karena takut, atau cakap karena terbiasa?” adalah pertanyaan retoris yang tidak menuntut jawaban dan menegaskan pendirian penulis.", "Penulis sama sekali tidak mengakui kebenaran alasan pihak yang mendukung larangan.", "Perbandingan dengan menutup pintu perpustakaan berfungsi sebagai analogi untuk memperkuat argumen.", "Data survei dipakai untuk mendukung argumen bahwa larangan hanya memindahkan masalah."], kunci: [true, false, true, true],
+    pembahasan: "(1) Benar: kalimat itu mengarahkan pembaca pada pilihan yang diunggulkan penulis. (2) Salah: penulis mengakui “Alasan itu masuk akal” sebelum membantahnya (konsesi). (3) Benar: analogi menyamakan dua hal untuk memperjelas kekeliruan melarang. (4) Benar: data 62 persen diikuti “Artinya, larangan hanya memindahkan masalah”." },
+
+  { tipe: "pg", stimulus: EDITORIAL,
+    pertanyaan: "Pada kalimat “Artinya, larangan hanya memindahkan masalah, bukan menyelesaikannya”, kata “Artinya” menunjukkan hubungan ...",
+    opsi: ["pertentangan dengan data sebelumnya", "pengandaian atas sebuah kemungkinan", "perbandingan dua keadaan", "simpulan atau penjelasan dari data yang dikemukakan sebelumnya", "syarat yang harus dipenuhi sekolah"], kunci: 3,
+    pembahasan: "Kalimat sebelumnya memuat data survei. “Artinya” memperjelas maksud data itu sehingga berfungsi sebagai penanda simpulan atau penjelasan, bukan pertentangan, pengandaian, perbandingan, atau syarat." },
+
+  /* ---------- Drama (13-15) ---------- */
+  { tipe: "pg", stimulus: DRAMA,
+    pertanyaan: "Konflik utama yang dialami tokoh Dimas dalam kutipan naskah drama tersebut adalah ...",
+    opsi: ["konflik batin: Dimas takut dibandingkan dengan kakaknya sehingga ragu mengikuti lomba", "konflik dengan Bu Laras karena ibunya melarang ia ikut lomba", "konflik dengan juri yang menolak pendaftarannya", "konflik dengan alam karena perjalanan ke lomba terhalang bencana", "konflik karena Dimas sudah dinyatakan kalah"], kunci: 0,
+    pembahasan: "Dimas bergulat dengan perasaannya sendiri: “Aku capek selalu dianggap bayang-bayang Kak Raka.” Bu Laras justru mendorongnya berangkat, juri belum menilai apa pun, dan tidak ada bencana atau kekalahan dalam kutipan." },
+
+  { tipe: "kategori", stimulus: DRAMA,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah berdasarkan kutipan naskah.",
+    pernyataan: ["Keterangan dalam tanda kurung adalah petunjuk lakuan (kramagung) yang menjelaskan gerak dan ekspresi tokoh.", "Bu Laras menanggapi kegelisahan Dimas dengan emosi yang meledak-ledak.", "Ucapan “Bayang-bayang hanya ada kalau kau berdiri membelakangi cahaya” bermakna kiasan: rasa rendah diri berkurang bila Dimas berani menghadapi tantangan.", "Latar tempat adegan tersebut adalah ruang kelas di sekolah."], kunci: [true, false, true, false],
+    pembahasan: "(1) Benar: contohnya “(meletakkan tas dengan keras)”. (2) Salah: Bu Laras tetap tenang, bahkan terus menjahit. (3) Benar: ibu mengiaskan keberanian menghadapi “cahaya” sebagai cara menghilangkan “bayang-bayang”. (4) Salah: latar adalah ruang tamu sederhana." },
+
+  { tipe: "pg", stimulus: DRAMA,
+    pertanyaan: "Watak tokoh Bu Laras yang paling tepat berdasarkan dialog dan petunjuk lakuan adalah ...",
+    opsi: ["pemarah dan otoriter", "acuh tak acuh terhadap anak", "tenang, bijak, dan tegas", "mudah menyerah dan pesimis", "manja dan penakut"], kunci: 2,
+    pembahasan: "Ia tetap menjahit saat bicara, menggali masalah sebenarnya dengan pertanyaan, memberi nasihat berupa kiasan, lalu mengajak Dimas berangkat. Itu menunjukkan ketenangan, kebijaksanaan, dan ketegasan." },
+
+  /* ---------- Penyuntingan ejaan dan kalimat (16-17, 20) ---------- */
+  { tipe: "pg", stimulus: "Perhatikan lima kalimat berikut. Hanya satu kalimat yang ejaan dan tanda bacanya sudah tepat.",
+    pertanyaan: "Kalimat yang penulisannya tepat adalah ...",
+    opsi: ["Adik berlari kepasar untuk membeli sayur.", "Buku itu di letakkan di atas meja oleh Ibu.", "Ayah membaca Koran di teras rumah.", "Setelah rapat selesai, para anggota OSIS membersihkan ruangan itu bersama-sama.", "Para anggota OSIS membersihkan ruangan itu, setelah rapat selesai."], kunci: 3,
+    pembahasan: "A salah: seharusnya “ke pasar” (ke sebagai preposisi ditulis terpisah). B salah: seharusnya “diletakkan” (di- sebagai awalan digabung). C salah: “koran” bukan nama diri sehingga tidak berhuruf kapital. E salah: anak kalimat yang berada di belakang induk kalimat tidak didahului koma. D benar: anak kalimat di depan diberi koma, dan “bersama-sama” ditulis dengan tanda hubung." },
+
+  { tipe: "mcma", stimulus: "Perhatikan lima kalimat berikut.",
+    pertanyaan: "Pilih semua kalimat yang sudah efektif dan baku.",
+    opsi: ["Para hadirin-hadirin dimohon berdiri.", "Pemerintah menetapkan kebijakan baru untuk mengatasi kemacetan.", "Banyak siswa-siswa yang mengikuti lomba itu.", "Dia menceritakan pengalamannya selama mengikuti kegiatan itu kepada kami.", "Demi untuk mencapai cita-citanya, ia belajar dengan tekun."], kunci: [1, 3],
+    pembahasan: "A salah: “para” dan pengulangan “hadirin-hadirin” sama-sama menyatakan jamak (pleonasme). C salah: “banyak” sudah bermakna jamak, jadi “siswa-siswa” berlebihan. E salah: “demi” dan “untuk” bermakna sama sehingga berlebihan (pilih salah satu). B dan D memiliki subjek, predikat, dan objek yang jelas serta tidak ada kata mubazir." },
+
+  /* ---------- Paragraf dan koherensi (18-19) ---------- */
+  { tipe: "pg", stimulus: "Kalimat-kalimat berikut belum tersusun menjadi paragraf yang padu. (1) Dengan demikian, volume sampah rumah tangga berkurang sekaligus kebun menjadi lebih subur. (2) Caranya, sisa sayur dan kulit buah dicampur dengan tanah, lalu disimpan dalam wadah tertutup selama beberapa minggu. (3) Sampah dapur sering berakhir di tempat pembuangan tanpa dimanfaatkan. (4) Kompos yang dihasilkan kemudian dapat dipakai untuk menyuburkan tanaman di halaman rumah. (5) Padahal, sampah organik tersebut dapat diolah menjadi kompos.",
+    pertanyaan: "Urutan kalimat yang tepat agar menjadi paragraf yang padu adalah ...",
+    opsi: ["3 – 5 – 2 – 1 – 4", "5 – 3 – 2 – 4 – 1", "3 – 5 – 2 – 4 – 1", "3 – 2 – 5 – 4 – 1", "2 – 3 – 5 – 4 – 1"], kunci: 2,
+    pembahasan: "Paragraf diawali masalah (3), lalu “Padahal” (5) menyatakan pertentangan dan gagasan solusi, “Caranya” (2) menjelaskan proses, (4) hasil kompos, dan (1) “Dengan demikian” menjadi simpulan di akhir. Urutan: 3–5–2–4–1." },
+
+  { tipe: "mcma", stimulus: "(1) Perpustakaan desa kami kini ramai dikunjungi anak-anak. (2) Sejak program membaca bersama dimulai, jumlah pengunjung naik dua kali lipat. (3) Harga cabai di pasar minggu ini juga mengalami kenaikan. (4) Para relawan membacakan dongeng setiap Sabtu sore. (5) Anak-anak yang semula enggan membaca kini meminjam buku setiap pekan.",
+    pertanyaan: "Pilih semua pernyataan yang benar tentang paragraf tersebut.",
+    opsi: ["Kalimat (3) menyimpang dari gagasan utama sehingga merusak kepaduan paragraf.", "Kalimat (1) berfungsi sebagai kalimat utama.", "Paragraf berpola induktif karena gagasan utama terletak di akhir.", "Kalimat (4) harus dihapus karena tidak berhubungan dengan topik.", "Kalimat (5) memperkuat gagasan utama dengan menunjukkan dampak program."], kunci: [0, 1, 4],
+    pembahasan: "Gagasan utama ada di kalimat (1), jadi pola deduktif (C salah). Kalimat (3) tentang harga cabai tidak berkaitan (A benar). Kalimat (4) menjelaskan kegiatan program membaca sehingga relevan (D salah). Kalimat (5) menjadi bukti dampak (E benar)." },
+
+  { tipe: "kategori", stimulus: "Perhatikan kalimat-kalimat berikut yang akan dimuat pada papan pengumuman sekolah.",
+    pertanyaan: "Tentukan apakah setiap kalimat sudah menggunakan ejaan dan kata baku dengan tepat (Benar) atau belum (Salah).",
+    pernyataan: ["Silahkan mengisi daftar hadir sebelum acara dimulai.", "Atlet itu mendapat medali emas di cabang renang.", "Hasil ujian di umumkan hari Senin.", "Rina mengikuti lomba itu karena ingin mengasah kemampuannya."], kunci: [false, true, false, true],
+    pembahasan: "(1) Salah: bentuk baku adalah “silakan”. (2) Benar. (3) Salah: “diumumkan” ditulis serangkai karena di- adalah awalan pembentuk verba pasif. (4) Benar." },
+
+  /* ---------- Resensi dan kritik (21-22) ---------- */
+  { tipe: "pg", stimulus: RESENSI,
+    pertanyaan: "Penilaian resensor terhadap novel tersebut yang paling tepat adalah ...",
+    opsi: ["kuat pada tokoh pendukung tetapi lemah pada latar", "lemah pada semua unsur sehingga tidak layak dibaca", "kuat pada alur dan penyelesaian konflik tetapi lemah pada latar", "hanya cocok dibaca oleh wisatawan", "kuat pada latar, tetapi lemah pada tokoh pendukung dan penyelesaian konflik"], kunci: 4,
+    pembahasan: "Resensor memuji latar yang hidup, mengkritik tokoh pendukung yang datar, dan menyatakan konflik di akhir diselesaikan tergesa-gesa. Pilihan A dan C membalik penilaian; B dan D bertentangan dengan rekomendasi di akhir teks." },
+
+  { tipe: "mcma", stimulus: RESENSI,
+    pertanyaan: "Pilih semua pernyataan yang sesuai dengan resensi tersebut.",
+    opsi: ["Resensor tidak merekomendasikan novel kepada pembaca.", "Resensor menyebutkan kelebihan sekaligus kekurangan novel.", "Frasa “mencium bau garam dan ikan asin dari lembar-lembarnya” adalah ungkapan kiasan untuk menggambarkan latar yang hidup.", "Novel mengisahkan Sari sebagai petugas pelabuhan.", "Kalimat penutup memuat rekomendasi sekaligus pesan tentang kampung nelayan."], kunci: [1, 2, 4],
+    pembahasan: "B, C, dan E sesuai teks. A salah: ada rekomendasi (“layak dibaca”). D salah: Sari adalah nelayan perempuan." },
+
+  /* ---------- Laporan dengan tabel (23) ---------- */
+  { tipe: "pg", stimulus: "Laporan survei kebiasaan membaca. Survei dilakukan terhadap empat kelas XII untuk mengetahui jumlah siswa yang membaca buku nonpelajaran minimal 3 jam per pekan.",
+    tabel: { kepala: ["Kelas", "Jumlah siswa", "Membaca ≥ 3 jam/pekan"], baris: [["XII-1", "36", "18"], ["XII-2", "32", "24"], ["XII-3", "30", "12"], ["XII-4", "34", "17"]] },
+    pertanyaan: "Simpulan yang paling tepat berdasarkan data pada tabel adalah ...",
+    opsi: ["Kelas XII-1 memiliki persentase pembaca tertinggi karena jumlah siswanya paling banyak.", "Kelas XII-2 memiliki persentase pembaca tertinggi, yaitu 75%.", "Persentase pembaca kelas XII-3 sama dengan kelas XII-4.", "Kurang dari separuh seluruh siswa membaca minimal 3 jam per pekan.", "Jumlah pembaca terbanyak terdapat di kelas XII-4."], kunci: 1,
+    pembahasan: "Persentase: XII-1 = 18/36 = 50%; XII-2 = 24/32 = 75%; XII-3 = 12/30 = 40%; XII-4 = 17/34 = 50%. Jadi XII-2 tertinggi (B benar), XII-3 dan XII-4 berbeda (C salah). Total pembaca 71 dari 132 siswa ≈ 53,8%, lebih dari separuh (D salah). Pembaca terbanyak di XII-2 dengan 24 siswa (E salah). Jumlah siswa terbanyak tidak menjamin persentase tertinggi (A salah)." },
+
+  /* ---------- Diksi dan majas (24-25) ---------- */
+  { tipe: "kategori", stimulus: "Perhatikan kalimat-kalimat berikut. (1) Ayah membanting tulang demi menyekolahkan kami. (2) Suara pidatonya bagaikan petir di siang bolong. (3) Mentari tersenyum menyambut pagi. (4) Kami sudah menunggu sejuta tahun, tetapi dia belum juga datang.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Kalimat (1) bermakna denotatif, yaitu ayah benar-benar mematahkan tulangnya.", "Kalimat (2) mengandung majas simile yang ditandai kata pembanding “bagaikan”.", "Kalimat (3) mengandung majas personifikasi.", "Kalimat (4) mengandung majas litotes."], kunci: [false, true, true, false],
+    pembahasan: "(1) Salah: “membanting tulang” adalah ungkapan idiomatis bermakna konotatif, yaitu bekerja keras. (2) Benar: perbandingan eksplisit dengan “bagaikan”. (3) Benar: mentari diberi sifat manusia (tersenyum). (4) Salah: “sejuta tahun” adalah pelebihan sehingga majasnya hiperbola, bukan litotes." },
+
+  { tipe: "mcma", stimulus: "Perhatikan kalimat-kalimat berikut beserta jenis majasnya.",
+    pertanyaan: "Pilih semua pasangan kalimat dan majas yang tepat.",
+    opsi: ["Hidupnya bagaikan air di daun talas. — simile", "Ia menunggu sampai berabad-abad di depan pintu. — ironi", "Terimalah kado yang tak seberapa ini. — litotes", "Matahari enggan menampakkan wajahnya hari ini. — personifikasi", "Bagus sekali nilaimu, merah semua! — metafora"], kunci: [0, 2, 3],
+    pembahasan: "A benar: perbandingan dengan kata “bagaikan”. C benar: merendahkan diri/pemberian. D benar: matahari berperilaku seperti manusia. B salah: pelebihan waktu adalah hiperbola. E salah: pujian untuk menyindir kenyataan buruk adalah ironi (cenderung sarkasme), bukan metafora." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Bahasa Indonesia", el("br"), "Tingkat Lanjut", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Analisis teks sastra dan nonsastra, unsur intrinsik, argumentasi, penyuntingan, koherensi, diksi dan majas"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

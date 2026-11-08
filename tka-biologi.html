@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Biologi</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Biologi<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA BIOLOGI (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-biologi-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== TKA SMA - Biologi (25 soal) ===== */
+const TXT_KODON = "Urutan nukleotida untai cetakan (antisense) suatu potongan gen adalah 3'-TAC GGT CAA ATT-5'. Tabel berikut menunjukkan sebagian kodon mRNA (ditulis 5'→3') dan asam amino yang dikodekannya.";
+const TBL_KODON = { kepala: ["Kodon mRNA", "Arti"], baris: [["AUG", "Met (kodon start)"], ["CCA", "Pro"], ["CCU", "Pro"], ["GUU", "Val"], ["GUA", "Val"], ["UAA", "Stop"]] };
+
+const SOAL = [
+  /* 1 */
+  { tipe: "pg",
+    stimulus: "Seorang siswa memotong umbi kentang menjadi potongan seragam bermassa awal 10,0 g, lalu merendamnya selama 2 jam dalam larutan sukrosa berbagai konsentrasi. Massa akhir potongan ditimbang dan hasilnya disajikan pada tabel.",
+    tabel: { kepala: ["Konsentrasi sukrosa (M)", "Massa awal (g)", "Massa akhir (g)"], baris: [["0,0", "10,0", "11,2"], ["0,2", "10,0", "10,4"], ["0,4", "10,0", "9,6"], ["0,6", "10,0", "8,8"]] },
+    pertanyaan: "Berdasarkan data tersebut, konsentrasi larutan sukrosa yang isotonik dengan sel umbi kentang diperkirakan sekitar ...",
+    opsi: ["0,1 M", "0,2 M", "0,3 M", "0,4 M", "0,6 M"], kunci: 2,
+    pembahasan: "Larutan isotonik terjadi saat massa tidak berubah (perubahan = 0). Perubahan massa: +1,2 g (0,0 M), +0,4 g (0,2 M), −0,4 g (0,4 M), −1,2 g (0,6 M). Perubahan bergeser linear sebesar 0,8 g tiap 0,2 M, sehingga titik nol berada di tengah antara 0,2 dan 0,4 M, yaitu 0,3 M. Pada 0,2 M massa masih bertambah (larutan masih hipotonik), pada 0,4 M massa sudah berkurang (hipertonik)." },
+
+  /* 2 */
+  { tipe: "pg",
+    stimulus: "Sel somatik suatu hewan memiliki 2n = 8 dan mengandung 6 pg DNA pada fase G1. Sel tersebut memasuki meiosis: terjadi replikasi DNA pada fase S, kemudian meiosis I berlangsung sampai selesai (dua sel anak terbentuk).",
+    pertanyaan: "Keadaan setiap sel anak yang terbentuk pada akhir meiosis I adalah ...",
+    opsi: ["8 kromosom, 16 kromatid, 12 pg DNA", "4 kromosom, 4 kromatid, 3 pg DNA", "8 kromosom, 8 kromatid, 6 pg DNA", "4 kromosom, 8 kromatid, 6 pg DNA", "4 kromosom, 8 kromatid, 12 pg DNA"], kunci: 3,
+    pembahasan: "Setelah fase S, sel memiliki 8 kromosom (16 kromatid) dan 12 pg DNA. Meiosis I memisahkan kromosom homolog sehingga tiap sel anak haploid: 4 kromosom, masing-masing masih terdiri atas 2 kromatid (8 kromatid), dengan DNA 12 ÷ 2 = 6 pg. Keadaan 4 kromosom/4 kromatid/3 pg baru tercapai setelah meiosis II (pemisahan kromatid). Pilihan A adalah keadaan sel sebelum meiosis I berakhir." },
+
+  /* 3 */
+  { tipe: "kategori",
+    stimulus: "Dua jenis sel diamati dan ciri-cirinya dicatat pada tabel berikut.",
+    tabel: { kepala: ["Ciri", "Sel X", "Sel Y"], baris: [["Membran inti", "Tidak ada", "Ada"], ["Ukuran ribosom", "70S", "80S"], ["Dinding sel", "Peptidoglikan", "Kitin"], ["Mitokondria", "Tidak ada", "Ada"], ["Klorofil", "Tidak ada", "Tidak ada"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Sel X termasuk sel prokariota.", "Sel Y adalah sel eukariota dan ciri dinding selnya sesuai dengan sel jamur.", "Sel X melakukan respirasi aerob di dalam mitokondria.", "Sel Y dapat berfotosintesis karena memiliki dinding sel dari kitin."],
+    kunci: [true, true, false, false],
+    pembahasan: "(1) Benar: tanpa membran inti dan ribosom 70S, dinding peptidoglikan adalah ciri bakteri (prokariota). (2) Benar: ada inti, ribosom 80S, mitokondria, dan dinding kitin adalah ciri sel jamur. (3) Salah: sel X tidak punya mitokondria; respirasi pada prokariota berlangsung di membran sel/sitoplasma. (4) Salah: kemampuan fotosintesis membutuhkan klorofil, bukan dinding kitin, dan sel Y tidak berklorofil." },
+
+  /* 4 */
+  { tipe: "pg",
+    stimulus: "Enzim amilase diuji aktivitasnya terhadap amilum. Sebelum diuji, larutan enzim diinkubasi 10 menit pada suhu tertentu, kemudian semuanya dikembalikan ke 37 °C dan aktivitasnya diukur.",
+    tabel: { kepala: ["Suhu inkubasi awal", "Aktivitas enzim (% dari maksimum)"], baris: [["0 °C", "95"], ["37 °C", "100"], ["60 °C", "25"], ["90 °C", "0"]] },
+    pertanyaan: "Penjelasan paling tepat mengapa enzim yang diinkubasi pada 90 °C tidak aktif lagi, sedangkan yang diinkubasi pada 0 °C hampir pulih sepenuhnya, adalah ...",
+    opsi: ["Suhu tinggi mengubah struktur tersier enzim secara permanen (denaturasi) sehingga sisi aktif tidak cocok lagi dengan substrat, sedangkan suhu rendah hanya menurunkan energi kinetik sementara", "Suhu tinggi memecah molekul amilum sehingga tidak ada substrat yang tersisa", "Suhu rendah mendenaturasi enzim secara permanen sedangkan suhu tinggi hanya menghambat sementara", "Enzim habis terpakai selama inkubasi pada suhu tinggi seperti halnya substrat", "Suhu tinggi mengubah enzim menjadi substrat baru sehingga reaksi berhenti"], kunci: 0,
+    pembahasan: "Enzim adalah protein. Panas tinggi memutus ikatan yang menjaga struktur tersier/kuartener sehingga sisi aktif berubah bentuk dan tidak dapat kembali (denaturasi ireversibel). Suhu rendah tidak merusak struktur, hanya memperlambat gerak molekul, sehingga aktivitas pulih saat dikembalikan ke 37 °C. Enzim bukan pereaksi yang habis terpakai, dan amilum belum ditambahkan saat inkubasi." },
+
+  /* 5 */
+  { tipe: "pg",
+    stimulus: "Dalam pembuatan tape, ragi (Saccharomyces) memfermentasi glukosa dari singkong tanpa oksigen melalui fermentasi alkohol. Sebuah tabung percobaan berisi 2 mol glukosa yang seluruhnya difermentasi. Pada fermentasi alkohol, tiap 1 mol glukosa menghasilkan 2 mol etanol, 2 mol CO₂, dan 2 mol ATP bersih.",
+    pertanyaan: "Hasil total dari 2 mol glukosa tersebut adalah ...",
+    opsi: ["2 mol ATP, 2 mol etanol, 2 mol CO₂", "4 mol ATP, 4 mol etanol, 4 mol CO₂", "4 mol ATP, 4 mol etanol, 4 mol O₂", "8 mol ATP, 2 mol etanol, 2 mol CO₂", "72 mol ATP, 4 mol etanol, 12 mol CO₂"], kunci: 1,
+    pembahasan: "Hasil dikalikan jumlah glukosa: 2 × 2 = 4 mol ATP, 4 mol etanol, 4 mol CO₂. Pilihan A adalah hasil dari 1 mol glukosa. Fermentasi tidak menghasilkan O₂ (C), dan 72 mol ATP (E) adalah anggapan keliru bahwa fermentasi sama efisiennya dengan respirasi aerob, yang menghasilkan sekitar 30–36 ATP per glukosa." },
+
+  /* 6 */
+  { tipe: "mcma",
+    stimulus: "Sebuah tumbuhan air diukur pertukaran O₂ bersihnya pada berbagai intensitas cahaya (nilai negatif berarti tumbuhan menyerap O₂ dari lingkungan). Laju respirasi dianggap konstan pada semua intensitas cahaya.",
+    tabel: { kepala: ["Intensitas cahaya (lux)", "Pertukaran O₂ bersih (μmol/jam)"], baris: [["0", "−4"], ["1.000", "6"], ["2.000", "16"], ["3.000", "24"], ["4.000", "28"], ["5.000", "28"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Pada 0 lux tumbuhan tetap berespirasi sehingga pertukaran O₂ bersihnya negatif.", "Titik kompensasi cahaya berada pada intensitas antara 0 dan 1.000 lux.", "Pada 5.000 lux laju fotosintesis masih meningkat karena cahaya merupakan faktor pembatas.", "Laju fotosintesis bruto pada 3.000 lux adalah 28 μmol O₂/jam.", "Laju fotosintesis bruto pada 4.000 lux adalah 28 μmol O₂/jam."], kunci: [0, 1, 3],
+    pembahasan: "Laju respirasi = 4 μmol/jam (nilai pada 0 lux). Fotosintesis bruto = O₂ bersih + respirasi. (A) Benar. (B) Benar: O₂ bersih berubah dari −4 ke +6, melewati 0 di sekitar 400 lux. (C) Salah: dari 4.000 ke 5.000 lux nilainya tetap 28 sehingga faktor lain (mis. CO₂ atau suhu) yang membatasi. (D) Benar: 24 + 4 = 28. (E) Salah: bruto pada 4.000 lux = 28 + 4 = 32." },
+
+  /* 7 */
+  { tipe: "pg",
+    stimulus: "Pada anjing Labrador, gen B menentukan pigmen hitam (B_) atau cokelat (bb), dan gen E memungkinkan pigmen diendapkan pada bulu. Anjing dengan genotipe ee berbulu kuning apa pun genotipe B-nya (epistasis resesif). Dua anjing Labrador hitam BbEe dikawinkan dan menghasilkan 48 anak.",
+    pertanyaan: "Jumlah anak yang diharapkan berbulu kuning adalah ...",
+    opsi: ["3 ekor", "9 ekor", "12 ekor", "16 ekor", "27 ekor"], kunci: 2,
+    pembahasan: "BbEe × BbEe menghasilkan rasio 9 B_E_ (hitam) : 3 bbE_ (cokelat) : 4 (3 B_ee + 1 bbee, kuning) = 9 : 3 : 4. Kuning = 4/16 × 48 = 12 ekor. Angka 9 adalah jumlah cokelat (3/16), 27 jumlah hitam (9/16), dan 3 muncul bila rasio dihitung 1/16." },
+
+  /* 8 */
+  { tipe: "pg",
+    stimulus: "Buta warna merah-hijau diwariskan secara resesif terpaut kromosom X (Xᵇ). Seorang perempuan normal pembawa sifat (XᴮXᵇ) menikah dengan laki-laki normal (XᴮY).",
+    pertanyaan: "Peluang pasangan ini mempunyai anak laki-laki yang buta warna adalah ...",
+    opsi: ["50%", "12,5%", "75%", "0%", "25%"], kunci: 4,
+    pembahasan: "Keturunan yang mungkin: XᴮXᴮ, XᴮXᵇ (perempuan normal), XᴮY (laki-laki normal), dan XᵇY (laki-laki buta warna), masing-masing 1/4. Peluang anak laki-laki buta warna dari seluruh kemungkinan anak = 1/4 = 25%. Angka 50% adalah peluang buta warna di antara anak laki-laki saja, bukan dari seluruh anak." },
+
+  /* 9 */
+  { tipe: "kategori",
+    stimulus: "Seorang ibu bergolongan darah A dengan genotipe IᴬIᴼ menikah dengan seorang ayah bergolongan darah B dengan genotipe IᴮIᴼ. Gen golongan darah terletak pada autosom.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Pasangan ini dapat memiliki anak bergolongan darah O.", "Peluang anak bergolongan darah A adalah 50%.", "Peluang anak bergolongan darah AB adalah 25%.", "Anak laki-laki lebih mungkin bergolongan darah B daripada anak perempuan."],
+    kunci: [true, false, true, false],
+    pembahasan: "Gamet ibu: Iᴬ atau Iᴼ; gamet ayah: Iᴮ atau Iᴼ. Keturunan: IᴬIᴮ (AB), IᴬIᴼ (A), IᴮIᴼ (B), IᴼIᴼ (O), masing-masing 25%. (1) Benar. (2) Salah: golongan A hanya 25%. (3) Benar. (4) Salah: gen berada pada autosom sehingga jenis kelamin tidak memengaruhi peluang." },
+
+  /* 10 */
+  { tipe: "pg", stimulus: TXT_KODON, tabel: TBL_KODON,
+    pertanyaan: "Polipeptida yang terbentuk dari potongan gen tersebut adalah ...",
+    opsi: ["Met–Val–Pro", "Met–Pro–Val", "Val–Pro–Met", "Met–Pro–Val–Stop", "Pro–Met–Val"], kunci: 1,
+    pembahasan: "mRNA dibentuk komplementer terhadap untai cetakan: 3'-TAC GGT CAA ATT-5' → 5'-AUG CCA GUU UAA-3'. Kodon dibaca dari ujung 5': AUG (Met) – CCA (Pro) – GUU (Val) – UAA (stop, tidak mengkode asam amino). Jadi polipeptidanya Met–Pro–Val. Pilihan D salah karena kodon stop bukan asam amino; pilihan A, C, E salah urutan." },
+
+  /* 11 */
+  { tipe: "pg", stimulus: TXT_KODON + " Kemudian terjadi mutasi titik: basa T pada kodon cetakan GGT (kodon kedua) berubah menjadi A, sehingga menjadi GGA.", tabel: TBL_KODON,
+    pertanyaan: "Dampak mutasi tersebut terhadap polipeptida adalah ...",
+    opsi: ["Mutasi missense; Pro diganti Val sehingga fungsi protein berubah", "Mutasi nonsense; sintesis berhenti setelah Met", "Mutasi frameshift; seluruh asam amino setelah Met berubah", "Mutasi diam (silent); urutan asam amino tetap Met–Pro–Val", "Tidak berdampak apa pun karena mutasi DNA tidak memengaruhi mRNA"], kunci: 3,
+    pembahasan: "GGA pada cetakan menghasilkan kodon mRNA CCU. Pada tabel, CCU juga mengkode Pro, sama seperti CCA. Maka asam amino tidak berubah (mutasi diam, karena kode genetik bersifat degeneratif/redundan). Mutasi ini substitusi satu basa, bukan penambahan/pengurangan basa (frameshift), dan DNA yang bermutasi tetap ditranskripsi sehingga mRNA berubah, hanya saja arti kodonnya sama." },
+
+  /* 12 */
+  { tipe: "pg",
+    stimulus: "Pada suatu populasi kelinci berjumlah 1.000 ekor yang berada dalam keseimbangan Hardy-Weinberg, terdapat 90 ekor kelinci albino (aa, sifat resesif). Tidak ada seleksi, migrasi, maupun mutasi.",
+    pertanyaan: "Jumlah kelinci heterozigot (Aa) dalam populasi tersebut adalah ...",
+    opsi: ["420 ekor", "490 ekor", "210 ekor", "90 ekor", "630 ekor"], kunci: 0,
+    pembahasan: "q² = 90/1.000 = 0,09 sehingga q = 0,3 dan p = 1 − 0,3 = 0,7. Frekuensi heterozigot 2pq = 2 × 0,7 × 0,3 = 0,42, sehingga jumlahnya 0,42 × 1.000 = 420 ekor. Angka 490 adalah jumlah homozigot dominan (p² = 0,49), sedangkan 210 muncul bila 2pq dihitung setengahnya." },
+
+  /* 13 */
+  { tipe: "pg",
+    stimulus: "Di sebuah rumah sakit, suatu antibiotik dipakai terus-menerus. Peneliti memantau proporsi bakteri yang resisten terhadap antibiotik tersebut dari generasi ke generasi.",
+    tabel: { kepala: ["Generasi bakteri", "Proporsi bakteri resisten"], baris: [["1", "0,1%"], ["3", "2%"], ["5", "30%"], ["7", "85%"]] },
+    pertanyaan: "Penjelasan evolusi yang paling tepat berdasarkan teori seleksi alam adalah ...",
+    opsi: ["Bakteri berusaha menjadi kebal, lalu sifat kebal yang diperoleh itu diwariskan kepada keturunannya", "Antibiotik sengaja memicu mutasi resistensi pada seluruh bakteri yang terpapar", "Bakteri yang sering terpapar antibiotik menggunakan alat pertahanan dan menjadikannya lebih kuat", "Seluruh bakteri bermutasi serentak pada generasi ke-5 karena dorongan lingkungan", "Variasi sifat resisten sudah ada sejak awal secara acak; antibiotik menyeleksi, sehingga bakteri resisten bertahan dan bereproduksi lebih banyak, dan frekuensi alelnya meningkat"], kunci: 4,
+    pembahasan: "Menurut seleksi alam, variasi genetik muncul acak sebelum seleksi (dalam hal ini sebagian kecil bakteri sudah resisten pada generasi 1: 0,1%). Antibiotik membunuh bakteri peka, sedangkan yang resisten bertahan, berkembang biak, dan menurunkan alel resistensi sehingga proporsinya meningkat. Pilihan A, C, dan D bernuansa Lamarckian (sifat dapatan/kebutuhan menimbulkan perubahan), dan B keliru karena mutasi bersifat acak, tidak diarahkan." },
+
+  /* 14 */
+  { tipe: "kategori",
+    stimulus: "Perhatikan beberapa struktur tubuh berikut. Sayap burung dan sayap kupu-kupu sama-sama dipakai untuk terbang, tetapi sayap burung tersusun atas tulang, otot, dan bulu, sedangkan sayap kupu-kupu tersusun atas selaput kitin. Lengan manusia, sirip paus, dan sayap kelelawar memiliki susunan tulang dasar yang serupa (humerus, radius, ulna, dan tulang-tulang jari) walaupun fungsinya berbeda. Pada manusia terdapat tulang ekor (koksigeus) yang tidak lagi berfungsi sebagai ekor.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Lengan manusia dan sirip paus merupakan organ homolog.", "Sayap burung dan sayap kupu-kupu merupakan organ analog.", "Organ analog pada burung dan kupu-kupu membuktikan bahwa keduanya berkerabat dekat.", "Tulang ekor manusia dapat dianggap sebagai struktur vestigial."],
+    kunci: [true, true, false, true],
+    pembahasan: "(1) Benar: asal-usul dan susunan dasar tulang sama walau fungsi berbeda. (2) Benar: fungsi sama (terbang) tetapi asal-usul/struktur berbeda. (3) Salah: organ analog menunjukkan adaptasi pada fungsi yang sama (evolusi konvergen), bukan kekerabatan dekat. (4) Benar: tulang ekor adalah sisa struktur ekor nenek moyang yang fungsinya hilang atau menurun." },
+
+  /* 15 */
+  { tipe: "pg",
+    stimulus: "Sebuah padang rumput memiliki rantai makanan: rumput → belalang → katak → ular → elang. Produsen (rumput) menyimpan 50.000 kJ energi. Pada tiap perpindahan antar tingkat trofik, hanya 10% energi yang diteruskan ke tingkat berikutnya.",
+    pertanyaan: "Energi yang tersedia bagi elang adalah ...",
+    opsi: ["0,5 kJ", "5 kJ", "50 kJ", "500 kJ", "5.000 kJ"], kunci: 1,
+    pembahasan: "Ada empat kali perpindahan energi (rumput→belalang→katak→ular→elang). Energi elang = 50.000 × (0,1)⁴ = 50.000 × 0,0001 = 5 kJ. Tahap: belalang 5.000 kJ, katak 500 kJ, ular 50 kJ, elang 5 kJ. Nilai 50 kJ adalah energi pada ular (tingkat trofik sebelumnya)." },
+
+  /* 16 */
+  { tipe: "pg",
+    stimulus: "Untuk memperkirakan jumlah ikan di sebuah danau kecil, peneliti menangkap 60 ikan, menandainya, lalu melepaskannya kembali. Beberapa hari kemudian ditangkap 50 ikan, dan 10 di antaranya bertanda. Populasi dianggap tertutup (tidak ada kelahiran, kematian, atau migrasi) dan tanda tidak hilang.",
+    pertanyaan: "Perkiraan ukuran populasi ikan di danau tersebut adalah ...",
+    opsi: ["120 ekor", "200 ekor", "250 ekor", "300 ekor", "600 ekor"], kunci: 3,
+    pembahasan: "Dengan metode tangkap-tandai-tangkap ulang: N = (jumlah ditandai awal × jumlah tangkapan kedua) ÷ jumlah bertanda pada tangkapan kedua = (60 × 50) ÷ 10 = 300 ekor. Dasarnya, proporsi bertanda di sampel (10/50 = 1/5) sama dengan proporsi bertanda di populasi (60/N), sehingga N = 300." },
+
+  /* 17 */
+  { tipe: "mcma",
+    stimulus: "Sebuah danau di sekitar lahan pertanian dipantau selama empat tahun.",
+    tabel: { kepala: ["Tahun", "Fosfat (mg/L)", "Kelimpahan alga (sel/mL)", "O₂ terlarut di dasar danau (mg/L)"], baris: [["2018", "0,02", "5.000", "7,8"], ["2020", "0,08", "40.000", "5,9"], ["2022", "0,15", "180.000", "2,1"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar berdasarkan data dan konsep ekologi.",
+    opsi: ["Data tersebut membuktikan secara pasti bahwa pupuk adalah satu-satunya penyebab perubahan kualitas air danau.", "Peningkatan kadar fosfat sejalan dengan peningkatan kelimpahan alga.", "Penurunan O₂ di dasar danau dapat terjadi karena bakteri aerob menguraikan alga yang mati dan memakai oksigen.", "Turunnya kadar O₂ tidak berpengaruh pada organisme dasar danau.", "Zona penyangga berupa vegetasi di tepi danau dapat mengurangi masuknya nutrien dari lahan pertanian."], kunci: [1, 2, 4],
+    pembahasan: "Pola data menunjukkan eutrofikasi: fosfat naik, alga melimpah (blooming), lalu O₂ dasar turun karena dekomposisi alga mati oleh bakteri aerob. (A) Salah: data korelasi tidak membuktikan satu-satunya penyebab. (D) Salah: O₂ rendah menyebabkan organisme dasar (mis. ikan dan invertebrata) stres atau mati. (E) Benar: vegetasi tepi menyerap/menyaring nutrien limpasan." },
+
+  /* 18 */
+  { tipe: "kategori",
+    stimulus: "Tabel berikut meringkas pengaruh interaksi antar spesies (+ menguntungkan, − merugikan, 0 tidak terpengaruh).",
+    tabel: { kepala: ["Pasangan spesies", "Efek pada spesies pertama", "Efek pada spesies kedua"], baris: [["Anggrek epifit – pohon inang", "+", "0"], ["Lebah madu – bunga", "+", "+"], ["Kutu – anjing", "+", "−"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Hubungan anggrek epifit dengan pohon inang adalah komensalisme.", "Hubungan lebah madu dengan bunga adalah komensalisme.", "Hubungan kutu dengan anjing adalah mutualisme karena keduanya hidup bersama.", "Pada hubungan kutu dengan anjing, kutu diuntungkan dan anjing dirugikan."],
+    kunci: [true, false, false, true],
+    pembahasan: "(1) Benar: satu pihak untung (+), pihak lain tidak terpengaruh (0). (2) Salah: keduanya untung (+/+) berarti mutualisme. (3) Salah: kutu untung dan anjing rugi (+/−) adalah parasitisme; hidup bersama saja tidak cukup untuk disebut mutualisme. (4) Benar sesuai tabel." },
+
+  /* 19 */
+  { tipe: "mcma",
+    stimulus: "Dua plot hutan dengan luas sama disampel dan masing-masing menghasilkan 100 individu burung dari 4 jenis. Plot A: 25, 25, 25, 25 individu per jenis. Plot B: 97, 1, 1, 1 individu per jenis.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Plot B lebih tinggi keanekaragamannya karena satu jenis memiliki jumlah individu yang sangat banyak.", "Kekayaan jenis (jumlah jenis) kedua plot sama, yaitu 4 jenis.", "Plot B memiliki kekayaan jenis lebih rendah karena tiga jenisnya hanya memiliki 1 individu.", "Plot A memiliki kemerataan jenis yang lebih tinggi daripada plot B.", "Total individu yang disampel pada kedua plot sama."], kunci: [1, 3, 4],
+    pembahasan: "Keanekaragaman melibatkan kekayaan jenis dan kemerataan. Kedua plot memiliki 4 jenis (B benar) dan total 100 individu (E benar). Plot A individunya terbagi merata sedangkan plot B didominasi satu jenis sehingga kemerataan A lebih tinggi (D benar) dan keanekaragaman A lebih tinggi. (A) salah karena dominasi satu jenis menurunkan keanekaragaman. (C) salah karena jenis yang hanya 1 individu tetap dihitung sebagai jenis." },
+
+  /* 20 */
+  { tipe: "pg",
+    stimulus: "Seorang pasien memeriksakan urinnya. Hasil analisis dibandingkan dengan nilai normal.",
+    tabel: { kepala: ["Zat dalam urin", "Hasil pasien", "Normal"], baris: [["Protein", "Positif kuat (++)", "Negatif"], ["Eritrosit", "Positif (+)", "Negatif"], ["Glukosa", "Negatif", "Negatif"], ["Urea", "Ada", "Ada"]] },
+    pertanyaan: "Bagian ginjal yang paling mungkin mengalami gangguan adalah ...",
+    opsi: ["Glomerulus dan kapsul Bowman, karena penyaringan menjadi tidak selektif sehingga protein dan sel darah lolos ke filtrat", "Tubulus kontortus proksimal, karena reabsorpsi glukosa terganggu", "Lengkung Henle, karena gradien konsentrasi tidak terbentuk", "Tubulus pengumpul, karena hormon ADH tidak bekerja", "Kandung kemih, karena urin tidak dapat disimpan"], kunci: 0,
+    pembahasan: "Protein dan eritrosit berukuran besar sehingga normalnya tertahan dalam darah di glomerulus. Kehadiran keduanya dalam urin menandakan membran filtrasi (glomerulus-kapsul Bowman) rusak. Glukosa negatif, sehingga reabsorpsi di tubulus proksimal tampak normal (pilihan B tidak didukung data). Gangguan lengkung Henle atau ADH akan memengaruhi volume dan kepekatan urin, bukan kehadiran protein dan eritrosit." },
+
+  /* 21 */
+  { tipe: "mcma",
+    stimulus: "Curah jantung = denyut jantung × volume sekuncup. Data istirahat seorang atlet dan non-atlet:",
+    tabel: { kepala: ["Kelompok", "Denyut jantung (kali/menit)", "Volume sekuncup (mL/denyut)"], baris: [["Atlet", "50", "105"], ["Non-atlet", "75", "70"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Curah jantung kedua kelompok sama, yaitu 5.250 mL/menit.", "Curah jantung atlet lebih besar daripada non-atlet.", "Setiap denyut, jantung atlet memompa lebih banyak darah daripada jantung non-atlet.", "Jantung non-atlet lebih efisien karena denyutnya lebih cepat.", "Atlet mencapai curah jantung yang sama dengan jumlah denyut lebih sedikit."], kunci: [0, 2, 4],
+    pembahasan: "Atlet: 50 × 105 = 5.250 mL/menit. Non-atlet: 75 × 70 = 5.250 mL/menit, jadi sama (A benar, B salah). Volume sekuncup atlet (105 mL) lebih besar dari non-atlet (70 mL) sehingga tiap denyut memompa lebih banyak (C benar). Hasil yang sama dicapai dengan denyut lebih sedikit, tanda jantung lebih efisien (E benar, D salah)." },
+
+  /* 22 */
+  { tipe: "mcma",
+    stimulus: "Seorang pasien menjalani operasi pengangkatan kantung empedu (kolesistektomi). Hatinya tetap sehat. Setelah operasi, empedu menetes langsung dari hati ke duodenum secara terus-menerus dalam jumlah kecil, tanpa penyimpanan dan pemekatan. Pasien mengeluh tidak nyaman setelah makan makanan berlemak tinggi.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Empedu tidak lagi tersedia sama sekali di duodenum setelah operasi.", "Hati tetap memproduksi empedu setelah kantung empedu diangkat.", "Empedu mengemulsikan lemak menjadi butiran kecil sehingga luas permukaan kerja lipase bertambah.", "Keluhan pada makanan berlemak dapat terjadi karena empedu yang menetes sedikit-sedikit membuat emulsifikasi lemak dalam jumlah besar kurang efisien.", "Empedu mengandung amilase sehingga pencernaan amilum pasien sangat terganggu."], kunci: [1, 2, 3],
+    pembahasan: "Kantung empedu hanya menyimpan dan memekatkan empedu; empedu diproduksi di hati sehingga tetap tersedia (B benar, A salah). Empedu tidak mengandung enzim, tetapi garam empedu mengemulsikan lemak sehingga lipase bekerja lebih efektif (C benar, E salah). Tanpa cadangan empedu pekat yang dilepaskan banyak sekaligus saat makanan berlemak masuk, emulsifikasi lemak dalam jumlah besar menjadi kurang efisien (D benar)." },
+
+  /* 23 */
+  { tipe: "mcma",
+    stimulus: "Seorang siswa mengelupas cincin kulit batang selebar 2 cm (hingga floem terbuang) mengelilingi sebuah cabang pohon jambu. Xilem tidak rusak. Setelah beberapa minggu, bagian batang tepat di atas cincin tampak membengkak.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Hasil fotosintesis berupa sukrosa menumpuk di atas cincin karena floem terputus.", "Pembengkakan terjadi karena xilem terputus sehingga air tertahan di atas cincin.", "Daun di atas cincin segera layu karena air tidak dapat naik.", "Akar di bawah cincin dalam jangka panjang kekurangan pasokan sukrosa.", "Floem berfungsi mengangkut air dan mineral dari akar ke daun."], kunci: [0, 3],
+    pembahasan: "Floem mengangkut sukrosa hasil fotosintesis dari daun ke seluruh bagian tumbuhan. Jika floem terputus, gula menumpuk di atas cincin (pembengkakan) dan bagian di bawahnya, termasuk akar, kekurangan gula (A, D benar). Xilem yang utuh tetap mengangkut air dari akar sehingga daun tidak segera layu (B, C salah). Air dan mineral diangkut xilem, bukan floem (E salah)." },
+
+  /* 24 */
+  { tipe: "mcma",
+    stimulus: "Dalam produksi insulin manusia oleh bakteri melalui rekayasa genetika, gen insulin manusia disisipkan ke dalam plasmid bakteri yang membawa gen resistensi antibiotik, kemudian plasmid dimasukkan ke dalam bakteri.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Enzim restriksi memotong DNA pada urutan nukleotida spesifik.", "Pemotongan gen dan plasmid dengan enzim restriksi yang sama menghasilkan ujung lengket yang saling komplementer.", "DNA ligase dipakai untuk memotong gen insulin dari kromosom manusia.", "Insulin yang dihasilkan berasal dari gen bakteri itu sendiri.", "Gen resistensi antibiotik pada plasmid membantu menyeleksi bakteri yang berhasil menerima plasmid."], kunci: [0, 1, 4],
+    pembahasan: "Enzim restriksi mengenali dan memotong urutan spesifik; enzim yang sama menghasilkan ujung lengket yang cocok antara gen dan plasmid (A, B benar). DNA ligase berfungsi menyambung, bukan memotong (C salah). Insulin berasal dari gen manusia yang disisipkan (D salah). Bakteri yang menerima plasmid resisten terhadap antibiotik sehingga hidup di medium berantibiotik (E benar)." },
+
+  /* 25 */
+  { tipe: "kategori",
+    stimulus: "Dalam teknik PCR (polymerase chain reaction), satu siklus terdiri atas denaturasi (sekitar 94–95 °C), penempelan primer atau annealing (sekitar 50–60 °C), dan pemanjangan oleh DNA polimerase tahan panas seperti Taq polimerase (sekitar 72 °C). Secara teoretis jumlah molekul DNA berlipat dua pada tiap siklus. Sebuah sampel mula-mula mengandung 1 molekul DNA target.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Setelah 5 siklus, secara teoretis hanya terbentuk 10 molekul DNA target.", "Setelah 5 siklus, secara teoretis terbentuk 32 molekul DNA target.", "Taq polimerase dipakai karena enzim ini tidak rusak pada suhu denaturasi yang tinggi.", "Tahap annealing dilakukan pada suhu sekitar 94 °C."],
+    kunci: [false, true, true, false],
+    pembahasan: "(1) Salah dan (2) Benar: jumlah berlipat dua tiap siklus, 2⁵ = 32, bukan 5 × 2 = 10. (3) Benar: Taq polimerase berasal dari bakteri termofil sehingga tahan panas dan tidak perlu ditambahkan ulang tiap siklus. (4) Salah: suhu sekitar 94 °C untuk denaturasi; annealing pada suhu lebih rendah (sekitar 50–60 °C)." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Biologi", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Sel, metabolisme, genetika, evolusi, ekologi, sistem organ, bioteknologi, keanekaragaman hayati"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

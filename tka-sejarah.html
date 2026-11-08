@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Sejarah</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Sejarah<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA SEJARAH (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-sejarah-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Mapel Pilihan: SEJARAH (TKA SMA) ===== */
+const TXT_TANAM = "Catatan seorang kontrolir di Karesidenan Sumberlaut (nama rekaan), tahun 1856: “Setiap desa diwajibkan menyediakan seperlima tanahnya untuk ditanami nila, atau penduduknya bekerja di kebun pemerintah selama 66 hari dalam setahun. Hasilnya diserahkan kepada pemerintah dengan harga tetap yang telah ditentukan. Kepala desa menerima persentase dari jumlah setoran sehingga ia berkepentingan menambah hasil. Panen padi tahun ini berkurang karena banyak petani tersita waktunya di kebun nila.”";
+
+const TXT_ETIS = "Pada awal abad ke-20 pemerintah kolonial menyatakan bahwa Hindia Belanda memiliki “utang budi” kepada rakyat bumiputra. Data berikut adalah jumlah sekolah untuk bumiputra di Kabupaten Tirtasari (nama dan data rekaan).";
+const TABEL_ETIS = { kepala: ["Tahun", "Jumlah sekolah bumiputra"], baris: [["1895", "4"], ["1905", "9"], ["1915", "31"], ["1925", "74"]] };
+
+const TXT_REMAJA = "Catatan harian rekaan seorang pemuda anggota kelompok pendesak (Jakarta, Agustus 1945): “Sudah dua hari kami mendengar kabar bahwa Jepang menyerah kepada Sekutu. Kami tidak sabar. Bung Karno dan Bung Hatta masih ingin membicarakannya dalam rapat panitia persiapan. Kami khawatir jika menunggu, orang akan menyebut kemerdekaan ini pemberian Jepang. Pagi buta kami membawa mereka keluar kota. Malamnya, setelah dijemput dan tiba kembali di Jakarta, naskah dirumuskan di rumah seorang perwira angkatan laut Jepang yang bersimpati. Menjelang pagi, naskah itu diketik dan siap dibacakan.”";
+
+const TABEL_1955 = { kepala: ["Partai", "Kursi DPR hasil Pemilu 1955"], baris: [["PNI", "57"], ["Masyumi", "57"], ["NU", "45"], ["PKI", "39"], ["Partai lain dan calon perorangan", "59"], ["Total", "257"]] };
+
+const SOAL = [
+  /* ---------- Kolonial: Tanam Paksa (1-3) ---------- */
+  { tipe: "pg", stimulus: TXT_TANAM,
+    pertanyaan: "Kebijakan kolonial yang digambarkan dalam kutipan tersebut paling tepat adalah ...",
+    opsi: ["Politik Pintu Terbuka, karena swasta bebas menanam modal di perkebunan", "Sistem Sewa Tanah, karena petani membayar pajak tanah kepada pemerintah", "Tanam Paksa, karena ada kewajiban seperlima tanah atau 66 hari kerja dengan setoran berharga tetap", "Politik Etis, karena pemerintah menyediakan irigasi bagi petani", "Monopoli VOC, karena rakyat wajib menyerahkan hasil bumi kepada kongsi dagang"], kunci: 2,
+    pembahasan: "Ciri seperlima tanah atau 66 hari kerja, penyerahan hasil dengan harga tetap, dan persentase bagi kepala desa adalah ciri Tanam Paksa (Cultuurstelsel, sejak 1830). (A) dan (B) salah: Pintu Terbuka dan Sewa Tanah tidak mewajibkan setoran hasil. (D) salah karena Politik Etis baru dimulai 1901. (E) salah karena VOC sudah bubar tahun 1799, sedangkan kutipan bertarikh 1856." },
+
+  { tipe: "mcma", stimulus: TXT_TANAM,
+    pertanyaan: "Pilih semua pernyataan yang dapat disimpulkan dari kutipan atau sesuai dengan fakta sejarah terkait kutipan tersebut.",
+    opsi: ["Kepala desa punya insentif untuk menekan petani agar setoran meningkat.", "Kebijakan itu mengurangi waktu dan tenaga untuk menanam pangan sehingga produksi padi menurun.", "Penanaman nila dilakukan atas dasar kesukarelaan petani.", "Harga hasil panen ditentukan oleh petani sesuai harga pasar.", "Kebijakan sejenis ini baru dihapus bertahap sekitar tahun 1870, yaitu lebih dari satu dasawarsa setelah catatan itu ditulis."], kunci: [0, 1, 4],
+    pembahasan: "(A) benar: kepala desa menerima persentase dari setoran. (B) benar: kutipan menyebut panen padi berkurang karena waktu petani tersita di kebun nila. (E) benar: Tanam Paksa dihapus bertahap, ditandai Undang-Undang Agraria dan Undang-Undang Gula 1870. (C) salah karena penanaman bersifat kewajiban. (D) salah karena harga ditetapkan pemerintah." },
+
+  { tipe: "pg", stimulus: TXT_TANAM,
+    pertanyaan: "Dalam penelitian sejarah, keterbatasan paling penting yang perlu dikritisi dari sumber tersebut adalah ...",
+    opsi: ["Sumber ini hanya mencerminkan sudut pandang pejabat kolonial sehingga perlu dibandingkan dengan sumber dari pihak petani", "Sumber ini tidak boleh dipakai karena ditulis oleh orang Belanda", "Sumber ini bersifat sekunder karena memuat angka dan data", "Isinya pasti benar karena berasal dari dokumen resmi pemerintah", "Isinya tidak relevan karena tidak menyebut nama petani"], kunci: 0,
+    pembahasan: "Kritik sumber menuntut kita menimbang siapa penulisnya dan kepentingannya. Catatan kontrolir memuat perspektif penguasa, sehingga perlu dikomparasi dengan sumber lain, misalnya kesaksian atau arsip desa. (B) terlalu ekstrem, (C) keliru karena sumber dari saksi sezaman termasuk primer, (D) mengabaikan kritik internal, (E) bukan alasan untuk menolak sumber." },
+
+  /* ---------- Politik Etis (4-5) ---------- */
+  { tipe: "pg", stimulus: TXT_ETIS, tabel: TABEL_ETIS,
+    pertanyaan: "Kesimpulan yang paling tepat dari data tersebut adalah ...",
+    opsi: ["Pertambahan jumlah sekolah terbesar terjadi pada periode 1895–1905.", "Seluruh anak bumiputra di Tirtasari sudah bersekolah pada 1925.", "Jumlah sekolah bertambah dengan jumlah yang sama pada setiap dasawarsa.", "Jumlah sekolah meningkat tajam setelah 1901, tetapi data tidak memberi tahu jumlah murid maupun pemerataannya.", "Politik Etis tidak berpengaruh pada bidang pendidikan."], kunci: 3,
+    pembahasan: "Pertambahan per periode: +5 (1895–1905), +22 (1905–1915), +43 (1915–1925). Jadi peningkatan terbesar justru terjadi belakangan, sejalan dengan arah edukasi Politik Etis (1901). Namun tabel hanya memuat jumlah sekolah, bukan jumlah murid atau cakupan penduduk, sehingga (B) tidak dapat disimpulkan. (A), (C), dan (E) bertentangan dengan data." },
+
+  { tipe: "kategori", stimulus: TXT_ETIS, tabel: TABEL_ETIS,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Trias van Deventer terdiri atas irigasi, edukasi, dan emigrasi.", "Pencetus Tanam Paksa, Van den Bosch, adalah tokoh yang menggagas Politik Etis.", "Meluasnya pendidikan modern turut melahirkan kaum terpelajar yang kemudian mendirikan organisasi pergerakan seperti Budi Utomo (1908).", "Tabel di atas membuktikan bahwa jumlah murid bumiputra naik dari 1895 sampai 1925."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar: irigasi, edukasi, dan emigrasi. (2) salah: Van den Bosch menggagas Tanam Paksa (1830), sedangkan Politik Etis dipengaruhi gagasan Van Deventer. (3) benar: pendidikan Barat melahirkan kaum terpelajar pelopor pergerakan. (4) salah: tabel hanya memuat jumlah sekolah, bukan jumlah murid." },
+
+  /* ---------- Pergerakan nasional (6-8) ---------- */
+  { tipe: "pg", stimulus: "Lima organisasi atau peristiwa pergerakan: (B) organisasi pelajar dan priyayi yang bergerak di bidang pendidikan dan budaya, dipelopori mahasiswa STOVIA; (I) partai pertama yang terang-terangan menuntut Hindia merdeka, dipelopori Tiga Serangkai; (P) partai berasas nonkooperasi yang dibentuk Soekarno di Bandung; (S) kongres pemuda yang mengikrarkan satu tanah air, satu bangsa, dan bahasa persatuan; (G) Gerindo, partai yang bersikap kooperatif dengan pemerintah demi menghadapi bahaya fasisme.",
+    pertanyaan: "Urutan kronologis yang benar dari kelima hal tersebut adalah ...",
+    opsi: ["I – B – P – S – G", "B – P – I – S – G", "B – I – S – P – G", "B – I – P – G – S", "B – I – P – S – G"], kunci: 4,
+    pembahasan: "B = Budi Utomo (1908), I = Indische Partij (1912), P = PNI (1927), S = Sumpah Pemuda (1928), G = Gerindo (1937). Urutannya B – I – P – S – G. Pilihan lain menukar posisi organisasi sehingga kronologinya keliru." },
+
+  { tipe: "mcma", stimulus: "Seorang peserta kongres pemuda menulis dalam catatan rekaan: “Di gedung itu kami datang dari Jawa, Sumatra, Ambon, dan Sulawesi. Berbeda bahasa ibu dan adat, tetapi pada penutupan kongres kami mengucapkan ikrar yang sama. Seorang pemuda memperdengarkan sebuah lagu dengan biolanya tanpa syair, dan hadirin terdiam khidmat.”",
+    pertanyaan: "Pilih semua pernyataan yang benar tentang peristiwa yang digambarkan.",
+    opsi: ["Ikrar tersebut mengakui satu tanah air, satu bangsa, dan bahasa persatuan Indonesia.", "Ikrar tersebut menetapkan bahasa Jawa sebagai bahasa persatuan karena penuturnya terbanyak.", "Peristiwa itu menandai pergeseran dari kesadaran kedaerahan menuju kesadaran kebangsaan.", "Ikrar tersebut merupakan proklamasi kemerdekaan Indonesia.", "Kongres itu berlangsung pada tahun 1928."], kunci: [0, 2, 4],
+    pembahasan: "Ini adalah Kongres Pemuda II, 28 Oktober 1928, dengan lagu Indonesia Raya yang diperdengarkan W.R. Supratman lewat biola. (A), (C), dan (E) benar. (B) salah karena bahasa persatuan adalah bahasa Indonesia (berakar dari Melayu). (D) salah: Sumpah Pemuda adalah ikrar persatuan, bukan proklamasi kemerdekaan, yang baru terjadi 1945." },
+
+  { tipe: "pg", stimulus: "Dua kutipan rekaan. Organisasi Alfa: “Kami bersedia duduk dalam Dewan Rakyat (Volksraad) sepanjang itu memperbesar suara bumiputra.” Organisasi Beta: “Kami tidak akan bekerja sama dengan pemerintah kolonial. Kemerdekaan hanya dicapai dengan kekuatan sendiri.”",
+    pertanyaan: "Pasangan sikap perjuangan dan contoh organisasi yang paling tepat adalah ...",
+    opsi: ["Alfa nonkooperatif, contohnya PNI; Beta kooperatif, contohnya Parindra", "Alfa kooperatif, contohnya Parindra; Beta nonkooperatif, contohnya PNI", "Alfa kooperatif, contohnya PNI; Beta nonkooperatif, contohnya Parindra", "Alfa dan Beta sama-sama nonkooperatif, contohnya PNI dan Parindra", "Alfa dan Beta sama-sama kooperatif, contohnya PNI dan Parindra"], kunci: 1,
+    pembahasan: "Alfa bersedia bekerja dalam lembaga bentukan kolonial (kooperatif), seperti Parindra yang punya wakil di Volksraad. Beta menolak kerja sama (nonkooperatif), seperti PNI (1927). Pilihan lain menukar atau menyamakan sikap keduanya." },
+
+  /* ---------- Pendudukan Jepang (9) ---------- */
+  { tipe: "kategori", stimulus: "Ringkasan masa pendudukan Jepang (1942–1945) dalam kronik sekolah rekaan: Pada Maret 1942 Jepang menguasai Jawa. Pemerintah militer membentuk berbagai organisasi baru untuk memobilisasi rakyat. Menjelang akhir perang, Jepang menjanjikan kemerdekaan dan membentuk badan untuk menyelidiki persiapannya.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Belanda menyerah tanpa syarat kepada Jepang di Kalijati pada Maret 1942.", "Pada masa pendudukan Jepang, partai politik dan organisasi pergerakan dibiarkan berkembang bebas seperti pada zaman Belanda.", "Sidang pertama BPUPKI berlangsung dari 29 Mei hingga 1 Juni 1945 dan membahas dasar negara.", "PETA dibentuk oleh pemerintah Belanda untuk melawan tentara Jepang."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar. (2) salah: Jepang melarang kegiatan politik dan membubarkan organisasi lama, lalu membentuk organisasi bentukan sendiri. (3) benar: pada sidang itu, 1 Juni 1945, Soekarno menyampaikan pidato tentang dasar negara. (4) salah: PETA dibentuk Jepang pada 1943 sebagai tentara sukarela pembela tanah air." },
+
+  /* ---------- Proklamasi (10-12) ---------- */
+  { tipe: "pg", stimulus: TXT_REMAJA,
+    pertanyaan: "Faktor yang paling mendasari desakan golongan muda agar proklamasi segera dilakukan, berdasarkan catatan tersebut, adalah ...",
+    opsi: ["Menunggu keputusan rapat panitia persiapan agar sah menurut hukum Jepang", "Jepang belum menyerah sehingga perlu dimanfaatkan kelengahannya", "Menghindari kesan bahwa kemerdekaan adalah hadiah Jepang dan memanfaatkan kekosongan kekuasaan setelah Jepang menyerah", "Pasukan Sekutu sudah menduduki Jakarta dan melarang proklamasi", "Belanda sudah menyerahkan kedaulatan sehingga tinggal diumumkan"], kunci: 2,
+    pembahasan: "Catatan menyebut kekhawatiran bahwa kemerdekaan akan disebut pemberian Jepang, dan konteksnya Jepang sudah menyerah kepada Sekutu (15 Agustus 1945), sehingga terjadi kekosongan kekuasaan. (A) justru sikap golongan tua. (B) bertentangan dengan fakta penyerahan Jepang. (D) dan (E) tidak benar secara historis: Sekutu baru tiba September 1945 dan Belanda belum menyerahkan kedaulatan." },
+
+  { tipe: "mcma", stimulus: TXT_REMAJA,
+    pertanyaan: "Pilih semua pernyataan yang benar sesuai fakta sejarah tentang peristiwa menjelang Proklamasi.",
+    opsi: ["Naskah proklamasi diketik oleh Sayuti Melik.", "Perumusan naskah dilakukan di rumah Laksamana Maeda.", "Teks proklamasi dibacakan di Rengasdengklok.", "Naskah proklamasi ditandatangani oleh seluruh anggota PPKI.", "Proklamasi dibacakan Soekarno di Jalan Pegangsaan Timur 56, Jakarta, pada 17 Agustus 1945."], kunci: [0, 1, 4],
+    pembahasan: "(A), (B), dan (E) sesuai fakta. (C) salah: Rengasdengklok adalah tempat golongan muda membawa Soekarno-Hatta pada 16 Agustus; proklamasi dibacakan di Jakarta. (D) salah: naskah ditandatangani Soekarno dan Hatta atas nama bangsa Indonesia." },
+
+  { tipe: "pg", stimulus: "Petikan memoar rekaan seorang anggota sidang: “Pada sidang keesokan harinya, rancangan undang-undang dasar dibahas singkat. Demi persatuan, rumusan di bagian awal yang menyangkut kewajiban syariat bagi pemeluk agama tertentu diganti dengan rumusan yang berlaku bagi semua. Setelah itu, pimpinan negara dipilih secara aklamasi.”",
+    pertanyaan: "Keputusan sidang PPKI 18 Agustus 1945 yang sesuai dengan petikan dan fakta sejarah adalah ...",
+    opsi: ["Menetapkan Piagam Jakarta tanpa perubahan sebagai Pembukaan UUD", "Mengesahkan UUD 1945 serta memilih Soekarno dan Hatta sebagai presiden dan wakil presiden", "Membentuk Konstituante untuk menyusun konstitusi tetap", "Menyetujui bentuk negara federal dengan beberapa negara bagian", "Membentuk BPUPKI untuk menyelidiki persiapan kemerdekaan"], kunci: 1,
+    pembahasan: "Pada 18 Agustus 1945 PPKI mengesahkan UUD 1945 (dengan perubahan rumusan sila pertama menjadi Ketuhanan Yang Maha Esa) dan memilih Soekarno-Hatta. (A) salah karena rumusan diubah. (C) Konstituante dibentuk setelah Pemilu 1955. (D) federal baru muncul lewat KMB 1949. (E) BPUPKI sudah dibentuk sebelum Proklamasi." },
+
+  /* ---------- Historiografi (13) ---------- */
+  { tipe: "kategori", stimulus: "Seorang mahasiswa menulis skripsi tentang Pertempuran Surabaya 10 November 1945 dan mengumpulkan: (a) surat harian seorang pejuang yang ikut bertempur; (b) buku sejarah terbitan 2010 karya seorang sejarawan; (c) wawancara tahun 2015 dengan veteran yang masih hidup; (d) foto-foto dari masa pertempuran.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Surat harian pejuang yang ikut bertempur (a) termasuk sumber primer.", "Buku sejarah terbitan 2010 (b) termasuk sumber primer karena memuat kutipan dokumen.", "Wawancara veteran (c) dapat menjadi sumber primer lisan, tetapi perlu dikritisi karena ingatan dapat bergeser seiring waktu.", "Tahap heuristik (pengumpulan sumber) dilakukan setelah tahap penulisan (historiografi)."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar: ditulis saksi mata sezaman. (2) salah: buku yang ditulis kemudian dan merujuk dokumen adalah sumber sekunder. (3) benar: saksi hidup bisa menjadi sumber primer, tetapi ingatan perlu diverifikasi (kritik internal). (4) salah: urutan metode sejarah adalah heuristik, kritik, interpretasi, lalu historiografi." },
+
+  /* ---------- Revolusi (14-15) ---------- */
+  { tipe: "mcma", stimulus: "Dari arsip rekaan: “Pagi 19 Desember 1948, pasukan Belanda menyerang ibu kota Republik. Pemimpin sipil ditawan. Sebelum itu sebuah mandat dikirim kepada seorang menteri yang berada di Sumatra untuk membentuk pemerintahan darurat bila perlu. Beberapa bulan kemudian, pasukan Republik menduduki kota itu selama beberapa jam untuk membuktikan bahwa perlawanan belum padam.”",
+    pertanyaan: "Pilih semua pernyataan yang benar berdasarkan kutipan dan fakta sejarah.",
+    opsi: ["Pemerintahan darurat di Sumatra dipimpin oleh Syafruddin Prawiranegara.", "Penyerbuan kota selama beberapa jam adalah Serangan Umum 1 Maret 1949 di Yogyakarta.", "Setelah ibu kota diduduki, Republik Indonesia tidak lagi memiliki pemerintahan sehingga perjuangan berhenti.", "Konferensi Meja Bundar diselenggarakan di Jakarta.", "Serangan Belanda tanggal 19 Desember 1948 dikenal sebagai Agresi Militer II."], kunci: [0, 1, 4],
+    pembahasan: "(A) benar: PDRI dipimpin Syafruddin Prawiranegara. (B) benar: Serangan Umum 1 Maret 1949 dilakukan TNI dan rakyat di Yogyakarta untuk menunjukkan bahwa TNI dan Republik masih ada. (E) benar. (C) salah: PDRI menjaga kesinambungan pemerintahan. (D) salah: KMB berlangsung di Den Haag, Belanda, dan berakhir dengan pengakuan kedaulatan 27 Desember 1949." },
+
+  { tipe: "pg", stimulus: "Rangkaian peristiwa di Surabaya, Oktober–November 1945, menurut kronik rekaan: terjadi perobekan bendera di sebuah hotel; tentara Inggris tiba untuk melucuti Jepang dan menjaga tawanan; seorang jenderal brigade Inggris tewas dalam kontak senjata; Inggris menuntut pejuang menyerahkan senjata; pertempuran besar pecah.",
+    pertanyaan: "Urutan sebab-akibat yang paling tepat berdasarkan fakta sejarah adalah ...",
+    opsi: ["Ultimatum Inggris – tewasnya Brigjen Mallaby – insiden Hotel Yamato – pertempuran 10 November", "Insiden Hotel Yamato – ultimatum Inggris – pertempuran 10 November – tewasnya Brigjen Mallaby", "Tewasnya Brigjen Mallaby – pertempuran 10 November – ultimatum Inggris – insiden Hotel Yamato", "Insiden Hotel Yamato – tewasnya Brigjen Mallaby – ultimatum Inggris agar senjata diserahkan – pertempuran 10 November", "Ultimatum Inggris – penolakan pejuang – tewasnya Brigjen Mallaby – insiden Hotel Yamato"], kunci: 3,
+    pembahasan: "Insiden Hotel Yamato terjadi 19 September 1945, Brigjen Mallaby tewas 30 Oktober, ultimatum Inggris dikeluarkan 9 November agar pejuang menyerahkan senjata, dan penolakan itu berujung pada pertempuran 10 November 1945 (kini Hari Pahlawan). Pilihan lain membalik urutan tewasnya Mallaby, ultimatum, atau insiden hotel." },
+
+  /* ---------- Demokrasi Liberal dan Terpimpin (16-19) ---------- */
+  { tipe: "pg", stimulus: "Berikut perolehan kursi DPR pada Pemilu 1955, pemilu pertama setelah kemerdekaan.", tabel: TABEL_1955,
+    pertanyaan: "Gabungan empat partai terbesar menguasai sekitar berapa persen kursi, dan apa implikasinya bagi pembentukan pemerintahan?",
+    opsi: ["Sekitar 57%; koalisi diperlukan", "Sekitar 77%; PNI dapat membentuk pemerintahan sendiri karena paling banyak kursi", "Sekitar 77%; tidak ada partai yang melampaui separuh kursi sehingga pemerintahan harus bertumpu pada koalisi", "Sekitar 88%; koalisi diperlukan", "Sekitar 77%; Masyumi menguasai mayoritas sehingga kabinet stabil"], kunci: 2,
+    pembahasan: "Empat partai: 57 + 57 + 45 + 39 = 198 kursi. 198 ÷ 257 ≈ 77%. Mayoritas mutlak butuh lebih dari 128 kursi, sedangkan partai terbesar hanya 57, sehingga kabinet harus berbasis koalisi, yang rentan jatuh. (A) dan (D) salah hitung. (B) dan (E) keliru karena tidak ada partai mayoritas." },
+
+  { tipe: "mcma", stimulus: "Dalam pidatonya, seorang tokoh partai pada 1958 (kutipan rekaan) menyatakan: “Kabinet datang dan pergi sebelum programnya selesai. Di daerah, sebagian perwira dan tokoh sipil menuntut perimbangan keuangan dan menentang pusat. Di Bandung, wakil-wakil rakyat yang ditugasi menyusun konstitusi tetap berdebat tanpa kesepakatan.”",
+    pertanyaan: "Pilih semua faktor yang berkontribusi pada berakhirnya Demokrasi Liberal (Parlementer).",
+    opsi: ["Seringnya pergantian kabinet karena sistem multipartai dan ketergantungan pada dukungan parlemen", "Pergolakan daerah, antara lain PRRI dan Permesta", "Keberhasilan Konstituante merumuskan UUD baru pada 1958", "Kebuntuan Konstituante dalam menyepakati dasar negara dan konstitusi tetap", "Meluasnya dukungan semua partai terhadap sistem parlementer"], kunci: [0, 1, 3],
+    pembahasan: "(A), (B), dan (D) adalah faktor yang melemahkan Demokrasi Liberal dan berujung pada Dekrit 5 Juli 1959. (C) salah: Konstituante gagal mencapai kesepakatan, bukan berhasil. (E) salah: tidak ada dukungan seragam; justru ketidakstabilan memicu kritik terhadap sistem itu." },
+
+  { tipe: "pg", stimulus: "Petikan memoar rekaan seorang anggota Konstituante: “Beberapa kali pemungutan suara untuk kembali ke konstitusi lama tidak mencapai jumlah suara yang disyaratkan. Banyak anggota akhirnya tidak hadir lagi. Beberapa pekan kemudian, Presiden mengumumkan sebuah keputusan dari Istana yang mengakhiri semua perdebatan itu.”",
+    pertanyaan: "Isi keputusan Presiden yang dimaksud adalah ...",
+    opsi: ["Kembali ke UUD 1945, membubarkan Konstituante, serta membentuk MPRS dan DPAS", "Memberlakukan UUDS 1950 dan membentuk Konstituante baru", "Membubarkan DPR hasil Pemilu 1955 dan mengangkat Soeharto sebagai pejabat presiden", "Mengganti bentuk negara menjadi federal berdasarkan hasil KMB", "Memberlakukan kembali Konstitusi RIS 1949"], kunci: 0,
+    pembahasan: "Keputusan itu adalah Dekrit Presiden 5 Juli 1959: kembali ke UUD 1945, pembubaran Konstituante, dan pembentukan MPRS serta DPAS dalam waktu singkat. (B) dan (E) adalah konstitusi sebelumnya. (C) tidak sesuai fakta: itu bukan isi dekrit. (D) bertentangan karena negara kesatuan." },
+
+  { tipe: "kategori", stimulus: "Ringkasan tentang Indonesia pada dasawarsa 1950–1960-an (rekaan, mengacu fakta sejarah): Indonesia menjadi tuan rumah sebuah konferensi besar negara-negara Asia dan Afrika di Bandung. Beberapa tahun kemudian, sistem pemerintahan berubah dan Presiden Soekarno memperkenalkan konsep yang menyatukan tiga aliran besar dalam politik.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Konferensi Asia-Afrika di Bandung diselenggarakan pada April 1955 dan dihadiri 29 negara.", "Nasakom adalah gagasan untuk menyatukan unsur nasionalis, agama, dan komunis.", "Selama Demokrasi Terpimpin, DPR hasil Pemilu 1955 dipertahankan sampai 1965 tanpa pernah dibubarkan.", "Gerakan 30 September terjadi pada tahun 1962."], kunci: [true, true, false, false],
+    pembahasan: "(1) benar: KAA 18–24 April 1955 dihadiri 29 negara. (2) benar: Nasakom = nasionalis, agama, komunis. (3) salah: pada 1960 Soekarno membubarkan DPR hasil pemilu dan membentuk DPR-GR. (4) salah: G30S terjadi pada 1965." },
+
+  /* ---------- Orde Baru (20-21) ---------- */
+  { tipe: "pg", stimulus: "Laporan rekaan tahun 1980-an: “Seorang perwira aktif ditunjuk menjadi bupati di sebuah kabupaten. Di DPR, satu fraksi dari angkatan bersenjata memperoleh kursi tanpa melalui pemilihan umum. Pejabat menyatakan bahwa angkatan bersenjata tidak hanya menjaga pertahanan, tetapi juga ikut mengurus stabilitas sosial-politik.”",
+    pertanyaan: "Praktik tersebut merupakan perwujudan konsep ... dengan dampak ...",
+    opsi: ["Dwikora, yaitu tuntutan mengganyang Malaysia, dengan dampak meningkatnya konfrontasi", "Trikora, yaitu perebutan Irian Barat, dengan dampak masuknya Irian ke Indonesia", "Nasakom, yaitu persatuan tiga aliran, dengan dampak masuknya komunis ke pemerintahan", "Demokrasi Liberal, yaitu kabinet parlementer, dengan dampak seringnya kabinet jatuh", "Dwifungsi ABRI, yaitu fungsi pertahanan sekaligus sosial-politik, dengan dampak meluasnya peran militer di bidang sipil dan menyempitnya ruang partisipasi sipil"], kunci: 4,
+    pembahasan: "Penempatan perwira aktif di jabatan sipil dan fraksi ABRI di DPR adalah wujud dwifungsi ABRI pada masa Orde Baru. Dampaknya perluasan peran militer dan berkurangnya ruang sipil. Pilihan lain adalah kebijakan atau sistem dari periode yang berbeda." },
+
+  { tipe: "mcma", stimulus: "Seorang peneliti merangkum ciri-ciri politik dan pembangunan Indonesia sejak akhir 1960-an sampai 1990-an (rangkuman rekaan yang mengacu fakta sejarah).",
+    pertanyaan: "Pilih semua pernyataan yang sesuai dengan fakta sejarah Orde Baru.",
+    opsi: ["Pada 1973 partai-partai Islam difusikan menjadi PPP dan partai nasionalis serta Kristen menjadi PDI, di samping Golkar.", "Pembangunan nasional dijalankan melalui Rencana Pembangunan Lima Tahun (Repelita) yang dimulai pada 1969.", "Pers menikmati kebebasan penuh tanpa pernah ada pembredelan atau pencabutan izin terbit.", "Pancasila ditetapkan sebagai asas tunggal bagi organisasi politik dan kemasyarakatan pada pertengahan 1980-an.", "Pemilihan umum diselenggarakan setiap sepuluh tahun sekali."], kunci: [0, 1, 3],
+    pembahasan: "(A) fusi partai 1973, (B) Repelita I dimulai 1969, dan (D) asas tunggal Pancasila 1985 adalah fakta Orde Baru. (C) salah: pers dikendalikan lewat SIUPP dan terjadi pembredelan, misalnya 1994. (E) salah: pemilu dilaksanakan setiap lima tahun." },
+
+  /* ---------- Reformasi (22-23) ---------- */
+  { tipe: "pg", stimulus: "Kronik rekaan: nilai rupiah merosot tajam sejak pertengahan 1997 dan harga kebutuhan pokok melonjak; banyak perusahaan memberhentikan karyawan; mahasiswa turun ke jalan menuntut perubahan; dalam sebuah demonstrasi di Jakarta, empat mahasiswa gugur; kerusuhan meluas; Presiden Soeharto menyatakan berhenti pada 21 Mei 1998 dan wakilnya dilantik.",
+    pertanyaan: "Urutan sebab-akibat yang tepat adalah ...",
+    opsi: ["Soeharto mundur – krisis moneter – demonstrasi mahasiswa – Peristiwa Trisakti", "Peristiwa Trisakti – krisis moneter – PHK dan kenaikan harga – Soeharto mundur", "Demonstrasi mahasiswa – krisis moneter – Peristiwa Trisakti – Soeharto mundur", "Krisis moneter – PHK dan kenaikan harga – demonstrasi mahasiswa dan Peristiwa Trisakti (12 Mei 1998) – kerusuhan – Soeharto mundur dan Habibie dilantik", "Krisis moneter – Soeharto mundur – Peristiwa Trisakti – kerusuhan Mei"], kunci: 3,
+    pembahasan: "Krisis moneter 1997 menimbulkan kenaikan harga dan PHK, memicu demonstrasi mahasiswa. Penembakan mahasiswa Trisakti (12 Mei 1998) mengobarkan kerusuhan dan tekanan politik hingga Soeharto mundur 21 Mei 1998; B.J. Habibie menjadi presiden. Pilihan lain meletakkan pengunduran diri atau Trisakti pada urutan yang salah." },
+
+  { tipe: "kategori", stimulus: "Artikel rekaan tentang era Reformasi: setelah 1998, lembaga-lembaga negara ditata ulang, hubungan pusat dan daerah diubah, dan cara memilih pemimpin berubah.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["UUD 1945 diamandemen empat kali pada rentang 1999–2002.", "Presiden dan wakil presiden pertama kali dipilih langsung oleh rakyat pada Pemilu 2004.", "Referendum Timor Timur tahun 1999 berlangsung pada masa pemerintahan Soeharto.", "Fraksi TNI/Polri tidak lagi memiliki kursi yang diangkat di DPR sejak 2004."], kunci: [true, true, false, true],
+    pembahasan: "(1) benar. (2) benar: Pemilu 2004 adalah pilpres langsung pertama. (3) salah: referendum 30 Agustus 1999 terjadi pada masa Presiden Habibie, setelah Soeharto mundur. (4) benar: kursi TNI/Polri di DPR dihapus mulai 2004." },
+
+  /* ---------- Sejarah dunia (24-25) ---------- */
+  { tipe: "pg", stimulus: "Seorang diplomat dalam pidato rekaan: “Dunia terbelah dua kekuatan, tetapi kami tidak ingin berpihak pada salah satunya. Bersama sejumlah negara yang baru merdeka, kami membentuk sebuah gerakan agar negara-negara berkembang punya suara sendiri.”",
+    pertanyaan: "Gerakan dalam pidato itu menyelenggarakan konferensi tingkat tinggi pertamanya pada 1961 di kota ...",
+    opsi: ["Beograd", "Bandung", "Jenewa", "Havana", "New Delhi"], kunci: 0,
+    pembahasan: "Gerakan Non-Blok, diprakarsai Soekarno, Nehru, Tito, Nasser, dan Nkrumah, mengadakan KTT I di Beograd (Yugoslavia) tahun 1961. (B) Bandung adalah tempat KAA 1955, yang menjadi pendahulu semangatnya tetapi bukan KTT GNB. (D) Havana adalah tuan rumah KTT 1979. (C) dan (E) bukan lokasi KTT I." },
+
+  { tipe: "mcma", stimulus: "Pada paruh kedua abad ke-20, dunia terbagi dalam dua blok yang bersaing di bidang politik, militer, dan ideologi tanpa perang langsung antara kedua adidaya.",
+    pertanyaan: "Pilih semua pernyataan yang benar tentang Perang Dingin.",
+    opsi: ["Tembok Berlin dibangun pada tahun 1961.", "Tembok Berlin mulai dibuka dan runtuh pada tahun 1989.", "Uni Soviet bubar pada Desember 1991.", "Uni Soviet bubar sebelum runtuhnya Tembok Berlin.", "Pakta Warsawa dibentuk lebih dahulu daripada NATO."], kunci: [0, 1, 2],
+    pembahasan: "(A) benar: 1961. (B) benar: November 1989. (C) benar: Desember 1991. (D) salah: bubarnya Uni Soviet (1991) terjadi setelah runtuhnya Tembok Berlin (1989). (E) salah: NATO dibentuk 1949, Pakta Warsawa 1955." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Sejarah", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Masa kolonial, pergerakan nasional, kemerdekaan dan revolusi, Orde Lama, Orde Baru dan Reformasi, berpikir historis"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

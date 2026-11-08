@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Ekonomi</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Ekonomi<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA EKONOMI (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-ekonomi-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Data soal TKA: EKONOMI (25 soal) ===== */
+const TXT_JERUK = "Pasar jeruk di sebuah kota memiliki fungsi permintaan Qd = 60 − 2P dan fungsi penawaran Qs = −20 + 3P, dengan P dalam ribu rupiah per kg dan Q dalam ton.";
+
+const SOAL = [
+  /* 1 */
+  { tipe: "pg", stimulus: "Dalam sehari (8 jam kerja), seorang pengrajin dapat menghasilkan 16 tikar anyaman atau 24 keranjang bambu. Seluruh waktu dan bahan hanya dapat dipakai untuk salah satu dari dua barang tersebut atau gabungan keduanya.",
+    pertanyaan: "Biaya peluang untuk membuat 1 tikar anyaman adalah ...",
+    opsi: ["0,67 keranjang", "1,5 keranjang", "8 keranjang", "16 keranjang", "24 keranjang"], kunci: 1,
+    pembahasan: "Membuat 16 tikar berarti mengorbankan 24 keranjang, sehingga 1 tikar = 24 ÷ 16 = 1,5 keranjang. Nilai 0,67 adalah biaya peluang 1 keranjang (16 ÷ 24 tikar), yaitu kebalikannya. Pilihan lain hanya menyalin angka dari soal." },
+
+  /* 2 */
+  { tipe: "mcma", stimulus: "Dewi memiliki satu hari Sabtu bebas dan hanya dapat memilih satu kegiatan: (i) bekerja paruh waktu di toko roti dengan upah Rp 150.000; (ii) menjaga toko kelontong ibunya dengan uang saku Rp 120.000; atau (iii) bersantai di rumah, yang ia nilai setara Rp 80.000. Dewi akhirnya memilih bekerja paruh waktu.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Biaya peluang pilihan Dewi sebesar Rp 120.000.", "Biaya peluang pilihan Dewi sebesar Rp 200.000, yaitu jumlah dua alternatif yang dikorbankan.", "Seandainya Dewi memilih menjaga toko ibunya, biaya peluangnya Rp 150.000.", "Biaya peluang pilihan Dewi sebesar Rp 150.000 karena itu upah yang ia terima.", "Biaya peluang hanya dihitung dari uang yang benar-benar dikeluarkan."], kunci: [0, 2],
+    pembahasan: "Biaya peluang adalah nilai alternatif terbaik berikutnya yang dikorbankan. Dewi memilih Rp 150.000, alternatif terbaik berikutnya adalah menjaga toko (Rp 120.000), sehingga (A) benar. Jika memilih menjaga toko, alternatif terbaik yang dikorbankan adalah kerja paruh waktu Rp 150.000, sehingga (C) benar. (B) salah karena hanya alternatif terbaik berikutnya yang dihitung, bukan jumlah semuanya. (D) mencampuradukkan manfaat yang diterima dengan biaya peluang. (E) salah karena biaya peluang juga mencakup nilai yang dikorbankan meski tidak berupa pengeluaran tunai." },
+
+  /* 3 */
+  { tipe: "pg", stimulus: TXT_JERUK,
+    pertanyaan: "Harga keseimbangan pasar jeruk tersebut adalah ... ribu rupiah per kg.",
+    opsi: ["12", "14", "16", "18", "20"], kunci: 2,
+    pembahasan: "Keseimbangan terjadi saat Qd = Qs: 60 − 2P = −20 + 3P → 80 = 5P → P = 16. Pemeriksaan: Qd = 60 − 32 = 28 dan Qs = −20 + 48 = 28 (sama), jadi harga keseimbangan Rp 16 ribu per kg dengan jumlah 28 ton." },
+
+  /* 4 */
+  { tipe: "pg", stimulus: TXT_JERUK + " Untuk melindungi konsumen, pemerintah menetapkan harga eceran tertinggi (HET) sebesar Rp 12 ribu per kg.",
+    pertanyaan: "Kondisi pasar yang terjadi setelah HET diberlakukan adalah ...",
+    opsi: ["Kelebihan permintaan 20 ton", "Kelebihan penawaran 20 ton", "Kelebihan permintaan 36 ton", "Kelebihan penawaran 16 ton", "Pasar tetap seimbang pada 28 ton"], kunci: 0,
+    pembahasan: "Pada P = 12: Qd = 60 − 24 = 36 ton dan Qs = −20 + 36 = 16 ton. Qd > Qs sehingga terjadi kelebihan permintaan sebesar 36 − 16 = 20 ton. HET yang berada di bawah harga keseimbangan (16) menimbulkan kekurangan pasokan. Angka 36 dan 16 adalah jumlah yang diminta dan ditawarkan, bukan selisihnya." },
+
+  /* 5 */
+  { tipe: "kategori", stimulus: "Daftar harga, jumlah yang diminta (Qd), dan jumlah yang ditawarkan (Qs) sebuah barang tersaji dalam tabel. Anggap perubahan jumlah terhadap harga bersifat linear di antara dua harga yang berurutan.",
+    tabel: { kepala: ["Harga (Rp ribu)", "Qd (unit)", "Qs (unit)"], baris: [["10", "80", "20"], ["20", "60", "40"], ["30", "40", "60"], ["40", "20", "80"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Harga keseimbangan pasar adalah Rp 25 ribu.", "Pada harga Rp 40 ribu terjadi kelebihan permintaan.", "Pada harga Rp 20 ribu terjadi kelebihan permintaan sebesar 20 unit.", "Jumlah keseimbangan pasar adalah 60 unit."], kunci: [true, false, true, false],
+    pembahasan: "Dari tabel: Qd = 100 − 2P dan Qs = 2P. Keseimbangan: 100 − 2P = 2P → P = 25, Q = 50. (1) benar. (2) salah: pada P = 40, Qs (80) > Qd (20) sehingga terjadi kelebihan penawaran 60 unit. (3) benar: pada P = 20, Qd 60 − Qs 40 = 20. (4) salah: jumlah keseimbangan 50 unit." },
+
+  /* 6 */
+  { tipe: "pg", stimulus: "Penjual es teh menurunkan harga dari Rp 10.000 menjadi Rp 8.000 per gelas. Akibatnya, penjualan naik dari 200 gelas menjadi 260 gelas per hari. Gunakan perubahan persentase terhadap nilai awal.",
+    pertanyaan: "Koefisien elastisitas harga permintaan (nilai mutlak) dan sifat permintaannya adalah ...",
+    opsi: ["0,67 (inelastis)", "1,00 (elastis uniter)", "1,30 (elastis)", "1,50 (elastis)", "0,30 (inelastis)"], kunci: 3,
+    pembahasan: "%ΔQ = 60 ÷ 200 × 100% = 30%. %ΔP = 2.000 ÷ 10.000 × 100% = 20% (turun). Ed = 30% ÷ 20% = 1,5 > 1 sehingga permintaan elastis. Pemeriksaan: penerimaan naik dari 10.000 × 200 = Rp 2.000.000 menjadi 8.000 × 260 = Rp 2.080.000, sesuai ciri permintaan elastis. 0,67 adalah kebalikan perhitungan yang benar." },
+
+  /* 7 */
+  { tipe: "mcma", stimulus: "Sebuah lembaga survei mencatat koefisien elastisitas harga permintaan (nilai mutlak) beberapa barang berikut.",
+    tabel: { kepala: ["Barang", "Koefisien elastisitas harga"], baris: [["Laptop", "1,8"], ["Beras", "0,3"], ["Paket wisata", "2,2"], ["Garam", "0,1"], ["Pakaian bermerek", "1,5"]] },
+    pertanyaan: "Pilih semua barang yang total penerimaan penjualnya akan turun jika harga dinaikkan.",
+    opsi: ["Laptop", "Beras", "Paket wisata", "Garam", "Pakaian bermerek"], kunci: [0, 2, 4],
+    pembahasan: "Pada permintaan elastis (Ed > 1), kenaikan harga menurunkan jumlah terjual dengan persentase lebih besar sehingga total penerimaan turun. Barang dengan Ed > 1 adalah laptop (1,8), paket wisata (2,2), dan pakaian bermerek (1,5). Beras (0,3) dan garam (0,1) inelastis: kenaikan harga justru menaikkan total penerimaan." },
+
+  /* 8 */
+  { tipe: "mcma", stimulus: "Harga tepung terigu naik tajam. Pada periode yang sama, tren sarapan roti di kota X meningkat. Kedua kejadian tersebut memengaruhi pasar roti.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Kenaikan harga tepung menggeser kurva penawaran roti ke kiri.", "Meningkatnya tren sarapan roti menggeser kurva permintaan roti ke kanan.", "Harga keseimbangan roti pasti turun.", "Jumlah keseimbangan roti pasti meningkat.", "Harga keseimbangan roti pasti naik."], kunci: [0, 1, 4],
+    pembahasan: "Tepung adalah input produksi: harga naik → biaya naik → penawaran turun (kurva ke kiri). Tren konsumsi meningkat → permintaan naik (kurva ke kanan). Keduanya mendorong harga naik, sehingga harga pasti naik. Jumlah keseimbangan tidak pasti: penawaran yang turun menurunkannya, permintaan yang naik menaikkannya, hasil akhirnya bergantung pada besar pergeseran. Karena itu (C) dan (D) salah." },
+
+  /* 9 */
+  { tipe: "pg", stimulus: "Indeks Harga Konsumen (IHK) sebuah negara pada akhir 2024 adalah 120 dan pada akhir 2025 adalah 126.",
+    pertanyaan: "Laju inflasi tahun 2025 adalah ...",
+    opsi: ["4,76%", "5,5%", "6%", "26%", "5%"], kunci: 4,
+    pembahasan: "Inflasi = (IHK tahun ini − IHK tahun lalu) ÷ IHK tahun lalu × 100% = (126 − 120) ÷ 120 × 100% = 5%. 4,76% muncul bila pembagi keliru memakai 126; 6% hanyalah selisih indeks, bukan persentase." },
+
+  /* 10 */
+  { tipe: "mcma", stimulus: "Bu Tari menyimpan deposito dengan bunga nominal 5% per tahun, sementara inflasi tahun tersebut 7%. Gunakan pendekatan bunga riil ≈ bunga nominal − inflasi.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Bunga riil yang diterima Bu Tari sekitar −2% per tahun.", "Daya beli tabungan Bu Tari meningkat karena bunga nominalnya positif.", "Secara riil, nilai tabungan Bu Tari mengalami penurunan.", "Jika inflasi turun menjadi 3%, bunga riilnya menjadi sekitar +2%.", "Bunga riil sama dengan bunga nominal ditambah inflasi, yaitu 12%."], kunci: [0, 2, 3],
+    pembahasan: "Bunga riil = 5% − 7% = −2%, sehingga (A) benar dan nilai riil tabungan turun (C benar); daya beli tidak naik (B salah). Bila inflasi 3%, bunga riil = 5% − 3% = +2% (D benar). Rumus bunga riil adalah nominal dikurangi inflasi, bukan dijumlahkan (E salah)." },
+
+  /* 11 */
+  { tipe: "pg", stimulus: "Data pengeluaran agregat negara Zeta pada tahun tertentu (triliun rupiah):",
+    tabel: { kepala: ["Komponen", "Nilai"], baris: [["Konsumsi rumah tangga (C)", "500"], ["Investasi (I)", "150"], ["Pengeluaran pemerintah (G)", "200"], ["Ekspor (X)", "180"], ["Impor (M)", "150"]] },
+    pertanyaan: "Produk Domestik Bruto menurut pendekatan pengeluaran adalah ... triliun rupiah.",
+    opsi: ["850", "880", "1.030", "1.180", "730"], kunci: 1,
+    pembahasan: "PDB = C + I + G + (X − M) = 500 + 150 + 200 + (180 − 150) = 880. Angka 850 melupakan ekspor neto, 1.030 menambah ekspor tetapi tidak mengurangi impor, 1.180 menjumlahkan semua komponen termasuk impor, dan 730 mengurangi impor sekali lagi dari hasil yang benar." },
+
+  /* 12 */
+  { tipe: "kategori", stimulus: "Data perekonomian negara Zeta (triliun rupiah): PDB 900; pendapatan faktor produksi warga Zeta dari luar negeri 40; pembayaran faktor produksi kepada warga asing yang bekerja di Zeta 70; penyusutan 60.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Produk Nasional Bruto (PNB) negara Zeta sebesar 870 triliun.", "PNB lebih besar daripada PDB karena ada pendapatan dari luar negeri.", "Produk Nasional Neto (PNN) negara Zeta sebesar 810 triliun.", "PDB hanya menghitung output yang dihasilkan warga negara sendiri, di mana pun lokasinya."], kunci: [true, false, true, false],
+    pembahasan: "PNB = PDB + pendapatan faktor dari luar negeri − pembayaran faktor ke luar negeri = 900 + 40 − 70 = 870 (1 benar). Karena pembayaran keluar (70) lebih besar daripada pendapatan masuk (40), PNB lebih kecil daripada PDB (2 salah). PNN = PNB − penyusutan = 870 − 60 = 810 (3 benar). PDB menghitung output yang dihasilkan di dalam wilayah domestik oleh siapa pun, bukan berdasarkan kewarganegaraan (4 salah)." },
+
+  /* 13 */
+  { tipe: "pg", stimulus: "Pada perekonomian tertutup tanpa pajak, kecenderungan mengonsumsi marginal (MPC) adalah 0,8. Pemerintah menambah belanja infrastruktur sebesar Rp 50 triliun untuk menggerakkan ekonomi.",
+    pertanyaan: "Pertambahan pendapatan nasional akibat kebijakan tersebut adalah ... triliun rupiah.",
+    opsi: ["40", "50", "200", "250", "62,5"], kunci: 3,
+    pembahasan: "Pengganda belanja = 1 ÷ (1 − MPC) = 1 ÷ 0,2 = 5. ΔY = 5 × 50 = 250 triliun. Angka 200 berasal dari pengganda MPC ÷ (1 − MPC) = 4, yang tidak menghitung kenaikan awal belanja itu sendiri. Angka 62,5 berasal dari 50 ÷ 0,8." },
+
+  /* 14 */
+  { tipe: "pg", stimulus: "Inflasi sebuah negara mencapai 9%, jauh di atas sasaran 3% ± 1%. Kajian bank sentral menunjukkan penyebab utamanya adalah permintaan masyarakat yang tumbuh jauh melampaui kapasitas produksi akibat kredit yang terlalu murah dan melimpah.",
+    pertanyaan: "Langkah kebijakan moneter yang paling tepat adalah ...",
+    opsi: ["Menurunkan suku bunga acuan agar dunia usaha menambah produksi", "Menurunkan giro wajib minimum perbankan", "Membeli surat berharga pemerintah di pasar sekunder", "Menaikkan suku bunga acuan dan menjual surat berharga melalui operasi pasar terbuka", "Melonggarkan syarat pemberian kredit konsumsi"], kunci: 3,
+    pembahasan: "Inflasi karena permintaan berlebih diatasi dengan kebijakan moneter kontraktif untuk mengurangi uang beredar: menaikkan suku bunga acuan dan menjual surat berharga (menyerap uang dari masyarakat). Pilihan A, B, C, dan E semuanya menambah uang beredar atau kredit sehingga justru memperparah inflasi." },
+
+  /* 15 */
+  { tipe: "mcma", stimulus: "Sebuah negara mengalami resesi: pertumbuhan ekonomi negatif dua kuartal berturut-turut, pengangguran meningkat, sedangkan inflasi rendah.",
+    pertanyaan: "Pilih semua kebijakan yang bersifat ekspansif dan tepat untuk situasi tersebut.",
+    opsi: ["Menaikkan giro wajib minimum perbankan.", "Menurunkan suku bunga acuan.", "Menaikkan tarif pajak penghasilan.", "Menambah belanja pemerintah untuk proyek infrastruktur padat karya.", "Bank sentral membeli surat berharga pemerintah melalui operasi pasar terbuka."], kunci: [1, 3, 4],
+    pembahasan: "Resesi membutuhkan stimulus permintaan. Suku bunga lebih rendah mendorong kredit dan investasi (B). Belanja infrastruktur padat karya menambah permintaan dan lapangan kerja (D). Pembelian surat berharga oleh bank sentral menyuntikkan uang ke perekonomian (E). Menaikkan GWM (A) mengurangi kredit, dan menaikkan pajak penghasilan (C) mengurangi daya beli, keduanya kontraktif." },
+
+  /* 16 */
+  { tipe: "kategori", stimulus: "Ringkasan APBN negara Zeta (triliun rupiah): pendapatan negara 2.800; belanja negara 3.100; PDB 20.000.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["APBN mengalami surplus sebesar 300 triliun.", "Belanja negara lebih kecil daripada pendapatan negara.", "Defisit anggaran setara dengan 1,5% dari PDB.", "Defisit tersebut dapat dibiayai antara lain dengan penerbitan surat utang negara."], kunci: [false, false, true, true],
+    pembahasan: "Selisih pendapatan − belanja = 2.800 − 3.100 = −300, jadi APBN defisit 300 triliun (1 dan 2 salah). Rasio defisit terhadap PDB = 300 ÷ 20.000 × 100% = 1,5% (3 benar). Defisit lazim ditutup dengan pembiayaan, misalnya penerbitan surat utang negara atau pinjaman (4 benar)." },
+
+  /* 17 */
+  { tipe: "pg", stimulus: "Data ketenagakerjaan negara Zeta (juta orang):",
+    tabel: { kepala: ["Keterangan", "Jumlah"], baris: [["Jumlah penduduk", "270"], ["Penduduk usia kerja", "190"], ["Angkatan kerja", "130"], ["Penduduk yang bekerja", "120"]] },
+    pertanyaan: "Tingkat Pengangguran Terbuka (TPT) negara Zeta adalah ...",
+    opsi: ["3,70%", "5,26%", "7,69%", "8,33%", "68,42%"], kunci: 2,
+    pembahasan: "Pengangguran = angkatan kerja − bekerja = 130 − 120 = 10 juta. TPT = pengangguran ÷ angkatan kerja × 100% = 10 ÷ 130 × 100% ≈ 7,69%. Angka 3,70% membagi dengan jumlah penduduk, 5,26% dengan penduduk usia kerja, 8,33% dengan jumlah yang bekerja, dan 68,42% adalah TPAK (130 ÷ 190)." },
+
+  /* 18 */
+  { tipe: "kategori", stimulus: "Ketenagakerjaan membagi penduduk usia kerja menjadi angkatan kerja (yang bekerja dan yang menganggur terbuka, yaitu aktif mencari kerja) dan bukan angkatan kerja (misalnya sekolah, mengurus rumah tangga).",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Ibu rumah tangga yang mengurus keluarga penuh waktu dan tidak mencari pekerjaan termasuk angkatan kerja.", "Siswa kelas XII berusia 17 tahun yang tidak bekerja dan tidak mencari kerja termasuk bukan angkatan kerja.", "Lulusan D3 yang aktif melamar ke banyak perusahaan tetapi belum diterima termasuk pengangguran terbuka.", "Karyawan toko yang bekerja 40 jam per minggu termasuk pengangguran terbuka."], kunci: [false, true, true, false],
+    pembahasan: "(1) salah: tanpa bekerja maupun mencari kerja, ia termasuk bukan angkatan kerja. (2) benar: usia 17 tahun termasuk usia kerja, tetapi tidak bekerja dan tidak mencari kerja. (3) benar: tidak bekerja dan aktif mencari kerja adalah ciri pengangguran terbuka. (4) salah: karyawan yang bekerja 40 jam per minggu adalah penduduk yang bekerja." },
+
+  /* 19 */
+  { tipe: "pg", stimulus: "Awal tahun, sebuah usaha memiliki aset Rp 120 juta dan kewajiban Rp 45 juta. Selama tahun tersebut usaha memperoleh laba bersih Rp 20 juta, dan pemilik mengambil prive Rp 8 juta. Tidak ada setoran modal tambahan.",
+    pertanyaan: "Modal pemilik pada akhir tahun adalah ...",
+    opsi: ["Rp 87 juta", "Rp 83 juta", "Rp 95 juta", "Rp 67 juta", "Rp 75 juta"], kunci: 0,
+    pembahasan: "Modal awal = aset − kewajiban = 120 − 45 = Rp 75 juta. Modal akhir = modal awal + laba bersih − prive = 75 + 20 − 8 = Rp 87 juta. Rp 95 juta lupa mengurangi prive, Rp 67 juta mengabaikan laba, Rp 83 juta menambahkan prive, dan Rp 75 juta adalah modal awal." },
+
+  /* 20 */
+  { tipe: "pg", stimulus: "Data keuangan sebuah toko selama satu tahun (juta rupiah):",
+    tabel: { kepala: ["Akun", "Jumlah"], baris: [["Penjualan", "400"], ["Retur penjualan", "20"], ["Potongan penjualan", "10"], ["Harga pokok penjualan", "250"], ["Beban operasional", "70"]] },
+    pertanyaan: "Laba bersih toko tersebut adalah ...",
+    opsi: ["Rp 80 juta", "Rp 120 juta", "Rp 50 juta", "Rp 60 juta", "Rp 100 juta"], kunci: 2,
+    pembahasan: "Penjualan bersih = 400 − 20 − 10 = 370. Laba kotor = 370 − 250 = 120. Laba bersih = 120 − 70 = Rp 50 juta. Rp 120 juta adalah laba kotor, Rp 80 juta mengabaikan retur dan potongan, Rp 60 juta mengabaikan potongan penjualan, dan Rp 100 juta berasal dari laba kotor dikurangi retur saja." },
+
+  /* 21 */
+  { tipe: "mcma", stimulus: "Sebuah usaha jasa mencatat lima transaksi dalam satu bulan. Ingat persamaan akuntansi: Aset = Kewajiban + Modal.",
+    pertanyaan: "Pilih semua transaksi yang menyebabkan total aset berubah.",
+    opsi: ["Membayar utang usaha Rp 3.000.000 secara tunai.", "Pemilik menyetor tambahan modal tunai Rp 10.000.000.", "Membeli perlengkapan Rp 2.000.000 secara tunai.", "Membeli peralatan Rp 5.000.000 secara kredit.", "Menerima pelunasan piutang Rp 1.500.000 secara tunai."], kunci: [0, 1, 3],
+    pembahasan: "(A) kas turun, utang turun: total aset turun. (B) kas naik, modal naik: total aset naik. (D) peralatan naik, utang naik: total aset naik. (C) dan (E) hanya menukar satu aset dengan aset lain (kas ke perlengkapan, piutang ke kas) sehingga total aset tetap." },
+
+  /* 22 */
+  { tipe: "kategori", stimulus: "Pada bulan Maret, usaha bimbingan belajar 'Cerdas' mencatat: pendapatan jasa tunai Rp 3.000.000; pembayaran gaji tutor Rp 1.200.000; pembayaran listrik Rp 300.000; dan pengambilan prive tunai oleh pemilik Rp 500.000. Semua transaksi dilakukan secara tunai.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Pengambilan prive Rp 500.000 mengurangi laba bulan Maret.", "Kas bertambah Rp 1.000.000 selama bulan Maret.", "Modal pemilik bertambah Rp 1.500.000 setelah memperhitungkan prive.", "Laba bersih bulan Maret sebesar Rp 1.500.000."], kunci: [false, true, false, true],
+    pembahasan: "Laba = pendapatan − beban = 3.000.000 − 1.200.000 − 300.000 = Rp 1.500.000 (4 benar). Prive bukan beban; ia mengurangi modal, bukan laba (1 salah). Kas bertambah = 3.000.000 − 1.200.000 − 300.000 − 500.000 = Rp 1.000.000 (2 benar). Modal bertambah = laba − prive = 1.500.000 − 500.000 = Rp 1.000.000, bukan Rp 1.500.000 (3 salah)." },
+
+  /* 23 */
+  { tipe: "pg", stimulus: "Hasil produksi per hari per pekerja di dua negara:",
+    tabel: { kepala: ["Negara", "Kain (meter)", "Beras (kg)"], baris: [["A", "12", "6"], ["B", "5", "4"]] },
+    pertanyaan: "Pernyataan yang paling tepat berdasarkan prinsip keunggulan komparatif adalah ...",
+    opsi: ["Negara A memproduksi beras dan negara B kain, karena A menghasilkan beras lebih banyak daripada B.", "Perdagangan tidak menguntungkan karena negara A unggul mutlak pada kedua barang.", "Negara B memproduksi kain karena biaya peluang kain di B lebih rendah daripada di A.", "Kedua negara sebaiknya memproduksi kedua barang sendiri karena selisih produktivitasnya kecil.", "Negara A memproduksi kain dan negara B beras, karena masing-masing memiliki biaya peluang yang lebih rendah pada barang tersebut."], kunci: 4,
+    pembahasan: "Biaya peluang 1 meter kain: A = 6 ÷ 12 = 0,5 kg beras; B = 4 ÷ 5 = 0,8 kg beras, jadi A lebih rendah. Biaya peluang 1 kg beras: A = 12 ÷ 6 = 2 meter kain; B = 5 ÷ 4 = 1,25 meter kain, jadi B lebih rendah. Maka A berspesialisasi kain dan B beras. Keunggulan mutlak A pada kedua barang tidak menghapus manfaat perdagangan (B dan C salah, A dan D keliru)." },
+
+  /* 24 */
+  { tipe: "pg", stimulus: "Sebuah pabrik mengimpor mesin seharga US$ 250. Pada saat pemesanan, kurs Rp 16.000 per US$ 1. Saat pembayaran, rupiah melemah sehingga kurs menjadi Rp 16.800 per US$ 1.",
+    pertanyaan: "Harga mesin tersebut dalam rupiah saat pembayaran adalah ...",
+    opsi: ["Rp 4.200.000", "Rp 4.000.000", "Rp 3.809.524", "Rp 200.000", "Rp 4.100.000"], kunci: 0,
+    pembahasan: "Harga dalam rupiah = US$ 250 × Rp 16.800 = Rp 4.200.000. Rp 4.000.000 memakai kurs lama, Rp 200.000 hanya selisih akibat pelemahan, dan Rp 3.809.524 membagi bukan mengalikan. Pelemahan rupiah (depresiasi) membuat barang impor lebih mahal dalam rupiah." },
+
+  /* 25 */
+  { tipe: "mcma", stimulus: "Nilai ekspor dan impor sebuah negara (miliar US$):",
+    tabel: { kepala: ["Tahun", "Ekspor", "Impor"], baris: [["2024", "240", "210"], ["2025", "250", "275"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Neraca perdagangan tahun 2025 lebih baik daripada tahun 2024.", "Pada tahun 2024 neraca perdagangan surplus US$ 30 miliar.", "Pada tahun 2025 neraca perdagangan defisit US$ 25 miliar.", "Pertumbuhan impor tahun 2025 lebih cepat daripada pertumbuhan ekspor.", "Pada tahun 2025 nilai ekspor melebihi nilai impor."], kunci: [1, 2, 3],
+    pembahasan: "Neraca 2024 = 240 − 210 = +30 (surplus), neraca 2025 = 250 − 275 = −25 (defisit). Maka (B) dan (C) benar, sedangkan (A) dan (E) salah. Pertumbuhan ekspor = 10 ÷ 240 ≈ 4,2%, sedangkan impor = 65 ÷ 210 ≈ 31%, sehingga (D) benar." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Ekonomi", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Kelangkaan, permintaan dan penawaran, inflasi, pendapatan nasional, kebijakan fiskal dan moneter, akuntansi dasar"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

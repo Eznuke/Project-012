@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Kimia</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Kimia<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA KIMIA (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-kimia-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== TKA SMA - Kimia (25 soal orisinal) ===== */
+const AR_KIMIA = "Gunakan Ar: H = 1, C = 12, N = 14, O = 16, Na = 23, Cl = 35,5, Ca = 40, Cu = 63,5. Volume molar gas pada STP = 22,4 L/mol.";
+
+const TXT_IE = "Seorang peneliti mengukur energi ionisasi berurutan suatu unsur periode ketiga (unsur X) dan memperoleh data berikut.";
+const TBL_IE = { kepala: ["Tahap ionisasi", "Energi (kJ/mol)"], baris: [["IE₁", "738"], ["IE₂", "1.451"], ["IE₃", "7.733"], ["IE₄", "10.543"], ["IE₅", "13.630"]] };
+
+const TXT_ATOM = "Empat unsur hipotetik P, Q, R, dan S berada pada periode ketiga sistem periodik dengan nomor atom berikut.";
+const TBL_ATOM = { kepala: ["Unsur", "Nomor atom"], baris: [["P", "11"], ["Q", "12"], ["R", "16"], ["S", "17"]] };
+
+const SOAL = [
+  /* 1 */
+  { tipe: "pg", stimulus: TXT_IE, tabel: TBL_IE,
+    pertanyaan: "Berdasarkan data tersebut, unsur X terletak pada golongan ... dan memiliki nomor atom ...",
+    opsi: ["IA, nomor atom 11", "IIA, nomor atom 12", "IIIA, nomor atom 13", "IVA, nomor atom 14", "VIIA, nomor atom 17"],
+    kunci: 1,
+    pembahasan: "Lonjakan energi ionisasi terbesar terjadi dari IE₂ ke IE₃ (1.451 menjadi 7.733 kJ/mol). Artinya dua elektron pertama mudah dilepas, sedangkan elektron ketiga diambil dari kulit dalam. Jadi X punya 2 elektron valensi, golongan IIA. Pada periode ketiga konfigurasinya 2.8.2 sehingga nomor atomnya 12. Golongan IA akan menunjukkan lonjakan setelah IE₁." },
+
+  /* 2 */
+  { tipe: "pg", stimulus: "Data titik didih hidrida unsur golongan VIA berikut menunjukkan penyimpangan dari pola yang diharapkan.",
+    tabel: { kepala: ["Senyawa", "Mr (dibulatkan)", "Titik didih (°C)"], baris: [["H₂S", "34", "−60"], ["H₂Se", "81", "−41"], ["H₂Te", "130", "−2"], ["H₂O", "18", "100"]] },
+    pertanyaan: "Penjelasan yang paling tepat mengapa H₂O memiliki titik didih jauh lebih tinggi daripada H₂S, padahal Mr-nya paling kecil, adalah ...",
+    opsi: ["Ikatan kovalen O–H lebih kuat daripada ikatan S–H sehingga ikatan itu baru putus pada suhu yang lebih tinggi.", "Mr H₂O paling besar sehingga gaya London antarmolekulnya paling kuat.", "Ikatan antara atom H dan atom O bersifat ionik.", "Antarmolekul H₂O terbentuk ikatan hidrogen karena atom O kecil dan sangat elektronegatif, sehingga diperlukan energi lebih besar untuk memisahkan molekul.", "Pasangan elektron bebas atom O membentuk ikatan kovalen koordinasi antarmolekul H₂O."],
+    kunci: 3,
+    pembahasan: "Mendidih memutus gaya antarmolekul, bukan ikatan kovalen di dalam molekul, jadi (A) salah. Mr H₂O justru paling kecil (B salah) dan ikatan O–H kovalen polar, bukan ionik (C salah). Anomali terjadi karena atom O kecil dan sangat elektronegatif sehingga antarmolekul H₂O membentuk ikatan hidrogen yang kuat (D benar). Ikatan hidrogen bukan ikatan kovalen koordinasi (E salah)." },
+
+  /* 3 */
+  { tipe: "pg", stimulus: "Sebongkah batu kapur seberat 12,5 g mengandung CaCO₃ dengan kadar 80% (pengotor tidak bereaksi) direaksikan dengan HCl berlebih menurut reaksi: CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂. " + AR_KIMIA,
+    pertanyaan: "Volume gas CO₂ yang dihasilkan pada STP adalah ...",
+    opsi: ["1,12 L", "1,79 L", "2,24 L", "2,80 L", "4,48 L"],
+    kunci: 2,
+    pembahasan: "Massa CaCO₃ = 80% × 12,5 g = 10 g. Mr CaCO₃ = 100 sehingga n = 0,1 mol. Perbandingan koefisien CaCO₃ : CO₂ = 1 : 1 sehingga CO₂ = 0,1 mol, volumenya 0,1 × 22,4 = 2,24 L. Nilai 2,80 L berasal dari mengabaikan kadar (12,5/100 × 22,4), 4,48 L dari mengalikan dengan koefisien HCl, 1,12 L dari memakai setengah mol." },
+
+  /* 4 */
+  { tipe: "pg", stimulus: "Pada pilot plant sintesis amonia (proses Haber), 28 g gas N₂ dan 9 g gas H₂ dimasukkan ke dalam reaktor. Reaksi: N₂ + 3H₂ → 2NH₃ berlangsung sempurna sampai salah satu pereaksi habis. (Ar N = 14, H = 1)",
+    pertanyaan: "Massa NH₃ maksimum yang dapat terbentuk adalah ...",
+    opsi: ["34 g", "17 g", "51 g", "76,5 g", "153 g"],
+    kunci: 0,
+    pembahasan: "n N₂ = 28/28 = 1 mol; n H₂ = 9/2 = 4,5 mol. Untuk 1 mol N₂ diperlukan 3 mol H₂, jadi H₂ berlebih dan N₂ adalah pereaksi pembatas. NH₃ = 2 × 1 = 2 mol, massanya 2 × 17 = 34 g. Nilai 51 g muncul bila H₂ dianggap pembatas (4,5 mol H₂ → 3 mol NH₃). Nilai 76,5 g dan 153 g berasal dari menyamakan mol H₂ atau massa H₂ dengan mol NH₃." },
+
+  /* 5 */
+  { tipe: "pg", stimulus: "Limbah laboratorium berupa 100 mL larutan HCl 0,1 M dicampur dengan 100 mL larutan NaOH 0,05 M. Diketahui log 2 = 0,30 dan log 5 = 0,70.",
+    pertanyaan: "pH campuran tersebut adalah ...",
+    opsi: ["1,0", "1,3", "2,0", "7,0", "1,6"],
+    kunci: 4,
+    pembahasan: "n H⁺ = 100 × 0,1 = 10 mmol; n OH⁻ = 100 × 0,05 = 5 mmol. Sisa H⁺ = 5 mmol dalam 200 mL, sehingga [H⁺] = 0,025 M = 2,5 × 10⁻². pH = 2 − log 2,5 = 2 − (log 5 − log 2) = 2 − 0,40 = 1,6. Nilai 1,0 mengabaikan NaOH dan pengenceran, 1,3 menganggap [H⁺] = 0,05 M (hanya pengenceran), 7,0 mengira campuran netral." },
+
+  /* 6 */
+  { tipe: "pg", stimulus: "Seorang laboran membuat larutan penyangga dengan mencampurkan 100 mL CH₃COOH 0,2 M dan 100 mL NaOH 0,1 M. Diketahui Ka CH₃COOH = 1 × 10⁻⁵ dan log 2 = 0,30.",
+    pertanyaan: "pH larutan yang terbentuk adalah ...",
+    opsi: ["2,85", "4,70", "5,00", "5,30", "9,00"],
+    kunci: 2,
+    pembahasan: "n CH₃COOH = 20 mmol dan n NaOH = 10 mmol. Setelah bereaksi tersisa 10 mmol CH₃COOH dan terbentuk 10 mmol CH₃COONa, sehingga terbentuk penyangga. [H⁺] = Ka × (asam/garam) = 10⁻⁵ × 10/10 = 10⁻⁵, pH = 5,00. Nilai 4,70 dan 5,30 berasal dari rasio terbalik atau memakai mol awal asam (20/10 dan 10/20). Nilai 2,85 adalah pH asam asetat 0,2 M saja." },
+
+  /* 7 */
+  { tipe: "pg", stimulus: "Sebuah unit biogas rumah tangga menghasilkan metana (CH₄). Data entalpi pembakaran standar: ΔH°c C(s) = −394 kJ/mol; ΔH°c H₂(g) = −286 kJ/mol; ΔH°c CH₄(g) = −890 kJ/mol.",
+    pertanyaan: "Entalpi pembentukan standar CH₄, yaitu C(s) + 2H₂(g) → CH₄(g), adalah ...",
+    opsi: ["−76 kJ/mol", "+76 kJ/mol", "−318 kJ/mol", "−1.856 kJ/mol", "+318 kJ/mol"],
+    kunci: 0,
+    pembahasan: "Dengan hukum Hess: ΔH°f CH₄ = ΔH°c C + 2 × ΔH°c H₂ − ΔH°c CH₄ = −394 + 2(−286) − (−890) = −394 − 572 + 890 = −76 kJ/mol. Nilai +76 salah tanda, −1.856 hasil menjumlahkan semua tanpa membalik ΔH°c CH₄, −318 dan +318 lupa menyertakan ΔH°c C atau koefisien H₂." },
+
+  /* 8 */
+  { tipe: "pg", stimulus: "Reaksi A + B → hasil dipelajari pada suhu tetap dan diperoleh data laju awal berikut.",
+    tabel: { kepala: ["Percobaan", "[A] (M)", "[B] (M)", "Laju (× 10⁻³ M/s)"], baris: [["1", "0,1", "0,1", "2"], ["2", "0,2", "0,1", "8"], ["3", "0,1", "0,2", "4"]] },
+    pertanyaan: "Laju reaksi pada saat [A] = 0,3 M dan [B] = 0,2 M adalah ...",
+    opsi: ["12 × 10⁻³ M/s", "18 × 10⁻³ M/s", "36 × 10⁻³ M/s", "54 × 10⁻³ M/s", "108 × 10⁻³ M/s"],
+    kunci: 2,
+    pembahasan: "Percobaan 1 dan 2: [A] naik 2 kali, laju naik 4 kali sehingga orde A = 2. Percobaan 1 dan 3: [B] naik 2 kali, laju naik 2 kali sehingga orde B = 1. Persamaan laju v = k[A]²[B]. Dibanding percobaan 1, [A] naik 3 kali (laju × 9) dan [B] naik 2 kali (laju × 2), sehingga v = 2 × 9 × 2 = 36 × 10⁻³ M/s. Nilai 18 melupakan faktor [B], 12 dan 108 berasal dari orde yang keliru." },
+
+  /* 9 */
+  { tipe: "pg", stimulus: "Dalam wadah 2 L dimasukkan 5 mol SO₂ dan 3 mol O₂. Pada suhu tertentu terjadi kesetimbangan 2SO₂(g) + O₂(g) ⇌ 2SO₃(g) dan pada keadaan setimbang terdapat 2 mol SO₃.",
+    pertanyaan: "Nilai tetapan kesetimbangan Kc reaksi tersebut adalah ...",
+    opsi: ["0,22", "0,44", "0,67", "1,50", "2,25"],
+    kunci: 1,
+    pembahasan: "SO₃ terbentuk 2 mol, maka SO₂ bereaksi 2 mol (tersisa 3 mol) dan O₂ bereaksi 1 mol (tersisa 2 mol). Konsentrasi dalam 2 L: [SO₃] = 1 M, [SO₂] = 1,5 M, [O₂] = 1 M. Kc = [SO₃]² / ([SO₂]²[O₂]) = 1 / (2,25 × 1) = 0,44. Nilai 0,22 muncul bila volume diabaikan (4/18), padahal Δn gas ≠ 0, sehingga volume berpengaruh. Nilai 0,67 mengabaikan pangkat, 2,25 adalah kebalikan." },
+
+  /* 10 */
+  { tipe: "pg", stimulus: "Larutan CuSO₄ dielektrolisis dengan elektrode inert menggunakan arus 5 A selama 1.930 detik. Diketahui 1 F = 96.500 C/mol elektron dan Ar Cu = 63,5.",
+    pertanyaan: "Massa tembaga yang mengendap di katode adalah ...",
+    opsi: ["1,59 g", "3,175 g", "6,35 g", "12,7 g", "31,75 g"],
+    kunci: 1,
+    pembahasan: "Q = i × t = 5 × 1.930 = 9.650 C, sehingga mol elektron = 9.650/96.500 = 0,1 mol. Reaksi katode: Cu²⁺ + 2e⁻ → Cu, jadi mol Cu = 0,1/2 = 0,05 mol dan massa = 0,05 × 63,5 = 3,175 g. Nilai 6,35 g muncul bila 1 elektron dianggap menghasilkan 1 atom Cu (lupa muatan 2+), 1,59 g bila mol Cu dibagi dua lagi." },
+
+  /* 11 */
+  { tipe: "pg", stimulus: "Dalam sebuah proses industri, 2-metilpropena, CH₂=C(CH₃)₂, direaksikan dengan HBr dan menghasilkan produk utama menurut aturan Markovnikov (atom H menempel pada C ikatan rangkap yang lebih banyak mengikat H).",
+    pertanyaan: "Nama produk utama reaksi tersebut adalah ...",
+    opsi: ["1-bromo-2-metilpropana", "2-bromobutana", "1-bromobutana", "2-bromo-2-metilpropana", "1,2-dibromo-2-metilpropana"],
+    kunci: 3,
+    pembahasan: "Pada CH₂=C(CH₃)₂, atom C ujung (CH₂) mengikat lebih banyak H, sehingga H dari HBr menempel di sana dan Br menempel di C yang mengikat dua gugus metil. Produknya (CH₃)₃C–Br, yaitu 2-bromo-2-metilpropana. Produk 1-bromo-2-metilpropana adalah hasil anti-Markovnikov. Butana-butana bromo bukan isomer rangka yang sesuai, dan dibromo memerlukan 2 mol pereaksi (adisi Br₂)." },
+
+  /* 12 */
+  { tipe: "pg", stimulus: "Tiga polimer dibuat dari monomer berbeda: P = polietena dari CH₂=CH₂; Q = nilon-6,6 dari asam adipat HOOC(CH₂)₄COOH dan 1,6-diaminoheksana H₂N(CH₂)₆NH₂; R = PET dari asam tereftalat (asam dikarboksilat aromatik) dan etilen glikol HOCH₂CH₂OH.",
+    pertanyaan: "Pernyataan yang benar mengenai ketiga polimer tersebut adalah ...",
+    opsi: ["P dan Q terbentuk melalui polimerisasi adisi.", "Q mengandung ikatan ester dan R mengandung ikatan amida.", "P terbentuk dengan melepaskan molekul H₂O pada setiap penyambungan monomer.", "Q dan R adalah homopolimer karena dibentuk dari satu jenis monomer.", "Q dan R terbentuk melalui polimerisasi kondensasi dengan melepaskan H₂O pada setiap penyambungan monomer."],
+    kunci: 4,
+    pembahasan: "Polietena terbentuk dari monomer berikatan rangkap (adisi) tanpa produk sampingan. Nilon-6,6 (ikatan amida) dan PET (ikatan ester) dibentuk dari dua jenis monomer berfungsi ganda yang bergabung dengan melepas H₂O, yaitu polimerisasi kondensasi, sehingga hanya (E) yang benar. (A) salah karena Q kondensasi, (B) tertukar: Q amida dan R ester, (C) salah, (D) salah karena keduanya kopolimer dari dua monomer." },
+
+  /* 13 */
+  { tipe: "pg", stimulus: "Seorang siswa melarutkan natrium asetat, CH₃COONa, hingga konsentrasi 0,1 M. Diketahui Ka CH₃COOH = 1 × 10⁻⁵ dan Kw = 1 × 10⁻¹⁴.",
+    pertanyaan: "pH larutan natrium asetat tersebut adalah ...",
+    opsi: ["5", "7", "8", "9", "13"],
+    kunci: 3,
+    pembahasan: "CH₃COONa adalah garam dari basa kuat dan asam lemah sehingga anionnya terhidrolisis dan larutan bersifat basa. [OH⁻] = √(Kw/Ka × [garam]) = √(10⁻⁹ × 10⁻¹) = 10⁻⁵ M, pOH = 5, pH = 9. pH 5 adalah nilai bila larutan dianggap asam, pH 7 bila garam dianggap netral, pH 13 bila dianggap basa kuat 0,1 M." },
+
+  /* 14 mcma */
+  { tipe: "mcma", stimulus: TXT_ATOM, tabel: TBL_ATOM,
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["R adalah unsur logam golongan VIA.", "Jari-jari atom P lebih besar daripada jari-jari atom Q.", "Keelektronegatifan S lebih besar daripada keelektronegatifan R.", "Q membentuk ion Q⁺ dengan konfigurasi elektron seperti gas mulia neon.", "Senyawa antara Q dan S berumus QS₂ dan berikatan ionik."],
+    kunci: [1, 2, 4],
+    pembahasan: "Konfigurasi: P 2.8.1 (IA), Q 2.8.2 (IIA), R 2.8.6 (VIA), S 2.8.7 (VIIA). (A) salah, R nonmetal. (B) benar, dalam satu periode jari-jari mengecil dari kiri ke kanan karena muatan inti bertambah. (C) benar, keelektronegatifan bertambah ke kanan. (D) salah, Q melepas 2 elektron menjadi Q²⁺. (E) benar, Q²⁺ dan 2 S⁻ membentuk QS₂ yang ionik." },
+
+  /* 15 mcma */
+  { tipe: "mcma", stimulus: "Berikut momen dipol (dalam debye) lima molekul: CO₂ = 0; H₂O = 1,85; BF₃ = 0; NH₃ = 1,47; CH₄ = 0. Perhatikan bahwa ikatan C=O, B–F, dan C–H termasuk ikatan polar.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Molekul H₂O berbentuk linear sehingga momen dipol ikatannya saling meniadakan.", "CO₂ bersifat nonpolar walaupun ikatan C=O polar, karena molekulnya linear dan simetris.", "NH₃ bersifat nonpolar karena atom N tidak memiliki pasangan elektron bebas.", "BF₃ bersifat nonpolar karena berbentuk segitiga planar yang simetris.", "H₂O dan NH₃ lebih mudah larut dalam air daripada CH₄ karena keduanya polar."],
+    kunci: [1, 3, 4],
+    pembahasan: "Kepolaran molekul ditentukan oleh bentuk, bukan hanya kepolaran ikatan. (A) salah: H₂O berbentuk bengkok (2 PEB pada O) sehingga polar. (B) benar. (C) salah: NH₃ memiliki 1 PEB, bentuk piramida trigonal, polar (momen dipol 1,47 D). (D) benar: momen dipol tiga ikatan B–F saling meniadakan. (E) benar: zat polar larut dalam pelarut polar." },
+
+  /* 16 mcma */
+  { tipe: "mcma", stimulus: "Dalam kalorimeter sederhana, 100 mL larutan NaOH 1 M dicampur dengan 100 mL larutan HCl 1 M. Suhu awal kedua larutan 27,0 °C dan suhu tertinggi campuran 33,5 °C. Anggap massa jenis larutan 1 g/mL, kalor jenis larutan 4,2 J/g °C, dan kalorimeter tidak menyerap kalor.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Reaksi netralisasi tersebut bersifat eksoterm.", "Kalor yang diserap larutan sebesar 5.460 J.", "Perubahan entalpi netralisasi sebesar −5,46 kJ/mol.", "Perubahan entalpi netralisasi sebesar −54,6 kJ/mol H₂O.", "Jika volume masing-masing diganti 200 mL dengan konsentrasi sama, kenaikan suhu menjadi 13 °C."],
+    kunci: [0, 1, 3],
+    pembahasan: "Suhu naik berarti kalor dilepas reaksi (eksoterm), (A) benar. q = m·c·ΔT = 200 g × 4,2 × 6,5 = 5.460 J, (B) benar. Mol H₂O = 0,1 mol sehingga ΔH = −5,46 kJ / 0,1 mol = −54,6 kJ/mol; (D) benar dan (C) salah karena lupa membagi dengan mol. (E) salah: jumlah kalor dan massa larutan sama-sama dua kali lipat sehingga ΔT tetap 6,5 °C." },
+
+  /* 17 mcma */
+  { tipe: "mcma", stimulus: "Reaksi kesetimbangan dekomposisi dinitrogen tetraoksida: N₂O₄(g) ⇌ 2NO₂(g), ΔH = +57 kJ. N₂O₄ tidak berwarna, sedangkan NO₂ berwarna cokelat. Campuran dalam wadah tertutup telah mencapai kesetimbangan.",
+    pertanyaan: "Pilih semua tindakan yang menyebabkan jumlah NO₂ pada kesetimbangan yang baru bertambah.",
+    opsi: ["Menaikkan suhu campuran.", "Memampatkan campuran sehingga tekanan naik.", "Memperbesar volume wadah pada suhu tetap.", "Menambahkan katalis.", "Menambahkan gas N₂O₄ ke dalam wadah."],
+    kunci: [0, 2, 4],
+    pembahasan: "Reaksi ke kanan endoterm, sehingga kenaikan suhu menggeser kesetimbangan ke kanan (A benar). Jumlah mol gas kiri = 1, kanan = 2; volume diperbesar (tekanan turun) menggeser ke arah mol gas lebih banyak, yaitu kanan (C benar), sedangkan pemampatan menggeser ke kiri (B salah). Katalis mempercepat tercapainya kesetimbangan tanpa menggeser (D salah). Penambahan pereaksi N₂O₄ menggeser ke kanan (E benar)." },
+
+  /* 18 mcma */
+  { tipe: "mcma", stimulus: "Logam tembaga larut dalam asam nitrat pekat menurut persamaan reaksi: 3Cu + 8HNO₃ → 3Cu(NO₃)₂ + 2NO + 4H₂O.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Cu mengalami oksidasi dari bilangan oksidasi 0 menjadi +2.", "Seluruh 8 mol HNO₃ berperan sebagai oksidator.", "Hanya 2 mol dari 8 mol HNO₃ yang mengalami reduksi.", "NO merupakan hasil oksidasi.", "Tiga mol Cu melepaskan 3 mol elektron."],
+    kunci: [0, 2],
+    pembahasan: "Cu: 0 → +2 (oksidasi), tiap atom melepas 2 e⁻ sehingga 3 Cu melepas 6 mol e⁻ (E salah). N dalam HNO₃ (+5) menjadi +2 dalam NO (reduksi), dan hanya 2 mol N yang berubah; 6 mol sisanya tetap +5 sebagai ion nitrat (pada Cu(NO₃)₂), jadi (B) salah dan (C) benar. NO adalah hasil reduksi, bukan oksidasi (D salah)." },
+
+  /* 19 mcma */
+  { tipe: "mcma", stimulus: "Tabel berikut memuat potensial reduksi standar beberapa elektrode.",
+    tabel: { kepala: ["Setengah reaksi", "E° (volt)"], baris: [["Zn²⁺ + 2e⁻ → Zn", "−0,76"], ["Fe²⁺ + 2e⁻ → Fe", "−0,44"], ["Cu²⁺ + 2e⁻ → Cu", "+0,34"], ["Ag⁺ + e⁻ → Ag", "+0,80"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Pada sel Zn | Cu, potensial sel standar sebesar 1,10 V.", "Pada sel Fe | Zn, besi bertindak sebagai anode.", "Pada sel Zn | Cu, elektron mengalir dari elektrode Cu ke elektrode Zn melalui kawat.", "Potensial sel standar Cu | Ag sebesar 0,46 V.", "Seng dapat melindungi besi dari korosi karena Zn lebih mudah teroksidasi daripada Fe."],
+    kunci: [0, 3, 4],
+    pembahasan: "E°sel = E°katode − E°anode. Zn | Cu: 0,34 − (−0,76) = 1,10 V (A benar); Cu | Ag: 0,80 − 0,34 = 0,46 V (D benar). Logam dengan E° lebih kecil menjadi anode: pada Fe | Zn anodenya Zn (B salah), dan elektron mengalir dari anode (Zn) ke katode (Cu), bukan sebaliknya (C salah). Karena E° Zn < Fe, Zn lebih mudah teroksidasi dan dapat menjadi anode korban pelindung besi (E benar)." },
+
+  /* 20 mcma */
+  { tipe: "mcma", stimulus: "Tiga senyawa organik diteliti: 1-propanol (CH₃CH₂CH₂OH), 2-propanol (CH₃CH(OH)CH₃), dan propanon (CH₃COCH₃). Ketiganya dioksidasi dengan pengoksidasi yang sesuai, dan hasilnya diuji dengan pereaksi Tollens.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Oksidasi 1-propanol menghasilkan propanon.", "1-propanol dan 2-propanol merupakan isomer posisi.", "Propanon memberikan uji Tollens positif (cermin perak).", "Oksidasi 2-propanol menghasilkan propanon.", "Propanon dan 1-propanol merupakan isomer fungsi karena memiliki rumus molekul sama."],
+    kunci: [1, 3],
+    pembahasan: "Alkohol primer (1-propanol) dioksidasi menjadi propanal lalu asam propanoat, bukan propanon (A salah). Alkohol sekunder (2-propanol) dioksidasi menjadi keton, yaitu propanon (D benar). 1-propanol dan 2-propanol sama-sama C₃H₈O dengan gugus –OH pada posisi berbeda: isomer posisi (B benar). Keton tidak mereduksi pereaksi Tollens (C salah). Rumus propanon C₃H₆O berbeda dari C₃H₈O, jadi bukan isomer (E salah)." },
+
+  /* 21 kategori */
+  { tipe: "kategori", stimulus: "Empat sampel makanan diuji dengan beberapa pereaksi. Tanda + berarti hasil positif dan − berarti negatif.",
+    tabel: { kepala: ["Sampel", "Biuret", "Xantoproteat", "Benedict", "Iodin"], baris: [["P", "+", "+", "−", "−"], ["Q", "−", "−", "−", "+"], ["R", "−", "−", "+", "−"], ["S", "+", "−", "−", "−"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Sampel P mengandung protein dengan asam amino yang memiliki cincin benzena.", "Sampel Q mengandung amilum (pati).", "Sampel R mengandung sukrosa karena uji Benedict positif.", "Sampel S mengandung asam amino bercincin benzena."],
+    kunci: [true, true, false, false],
+    pembahasan: "Biuret + menandakan ikatan peptida (protein); xantoproteat + menandakan asam amino bercincin benzena. P: keduanya + sehingga (1) benar. Iodin + pada Q menandakan amilum (2 benar). Benedict + menandakan gula pereduksi (misalnya glukosa); sukrosa bukan gula pereduksi (3 salah). S positif biuret tetapi xantoproteat negatif, jadi proteinnya tanpa asam amino aromatik (4 salah)." },
+
+  /* 22 kategori */
+  { tipe: "kategori", stimulus: "Sebanyak 4,4 g propana (C₃H₈) dibakar sempurna: C₃H₈ + 5O₂ → 3CO₂ + 4H₂O. " + AR_KIMIA,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Oksigen yang diperlukan sebanyak 16 g.", "Massa air yang terbentuk 3,6 g.", "Volume CO₂ yang terbentuk pada STP adalah 6,72 L.", "Massa total produk sama dengan massa total pereaksi, yaitu 20,4 g."],
+    kunci: [true, false, true, true],
+    pembahasan: "Mr C₃H₈ = 44 sehingga n = 4,4/44 = 0,1 mol. O₂ = 5 × 0,1 = 0,5 mol = 16 g (1 benar). H₂O = 4 × 0,1 = 0,4 mol = 7,2 g, bukan 3,6 g (2 salah). CO₂ = 0,3 mol → 0,3 × 22,4 = 6,72 L (3 benar). Massa CO₂ = 13,2 g; total produk = 13,2 + 7,2 = 20,4 g = 4,4 + 16 (hukum kekekalan massa; 4 benar)." },
+
+  /* 23 kategori */
+  { tipe: "kategori", stimulus: "Siswa mereaksikan 1 g logam Mg dengan larutan HCl pada beberapa kondisi dan mencatat waktu hingga Mg habis bereaksi.",
+    tabel: { kepala: ["Percobaan", "Bentuk Mg", "[HCl]", "Suhu", "Waktu (s)"], baris: [["1", "Pita", "1 M", "25 °C", "80"], ["2", "Serbuk", "1 M", "25 °C", "20"], ["3", "Pita", "2 M", "25 °C", "40"], ["4", "Pita", "1 M", "35 °C", "40"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Perbandingan percobaan 2 dan 3 dapat dipakai untuk menyimpulkan pengaruh konsentrasi HCl terhadap laju reaksi.", "Perbandingan percobaan 1 dan 2 menunjukkan pengaruh luas permukaan.", "Percobaan 1 dan 4 menunjukkan bahwa kenaikan suhu 10 °C menggandakan laju reaksi.", "Kenaikan suhu mempercepat reaksi karena menurunkan energi aktivasi."],
+    kunci: [false, true, true, false],
+    pembahasan: "Untuk melihat pengaruh satu faktor, hanya satu variabel yang boleh berbeda. Percobaan 2 dan 3 berbeda dua variabel (bentuk Mg dan konsentrasi), jadi (1) salah. Percobaan 1 dan 2 hanya berbeda bentuk Mg (2 benar). Percobaan 1 dan 4 hanya berbeda suhu; waktu 80 s menjadi 40 s berarti laju dua kali lipat (3 benar). Suhu menaikkan energi kinetik sehingga tumbukan efektif lebih banyak, bukan menurunkan energi aktivasi (4 salah); yang menurunkan energi aktivasi adalah katalis." },
+
+  /* 24 kategori */
+  { tipe: "kategori", stimulus: "Tiga isomer pentana (C₅H₁₂) memiliki titik didih berbeda.",
+    tabel: { kepala: ["Isomer", "Bentuk rantai", "Titik didih (°C)"], baris: [["n-pentana", "Lurus", "36"], ["2-metilbutana", "Satu cabang", "28"], ["2,2-dimetilpropana", "Dua cabang pada satu atom C", "9,5"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Ketiga senyawa merupakan isomer rangka.", "Semakin bercabang rantai, semakin tinggi titik didih karena gaya London makin kuat.", "n-pentana memiliki titik didih tertinggi karena molekulnya memanjang sehingga luas permukaan sentuh antarmolekul terbesar.", "Perbedaan titik didih ketiganya terutama disebabkan oleh ikatan hidrogen."],
+    kunci: [true, false, true, false],
+    pembahasan: "Ketiganya C₅H₁₂ dengan kerangka karbon berbeda: isomer rangka (1 benar). Data menunjukkan titik didih turun saat percabangan bertambah, jadi (2) salah. Rantai lurus memiliki luas sentuh terbesar sehingga gaya London terkuat dan titik didih tertinggi (3 benar). Alkana tidak memiliki ikatan hidrogen; semuanya nonpolar dan hanya mengalami gaya London (4 salah)." },
+
+  /* 25 kategori */
+  { tipe: "kategori", stimulus: "Sifat dua zat padat diselidiki dan hasilnya dicatat pada tabel berikut.",
+    tabel: { kepala: ["Sifat", "Zat K", "Zat L"], baris: [["Titik leleh", "801 °C", "80 °C"], ["Padatan menghantar listrik", "Tidak", "Tidak"], ["Lelehan menghantar listrik", "Ya", "Tidak"], ["Larut dalam air", "Ya", "Tidak"], ["Larut dalam benzena", "Tidak", "Ya"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Zat K tersusun atas ikatan ionik.", "Lelehan zat K menghantar listrik karena elektron valensinya bergerak bebas.", "Zat L larut dalam air karena sama-sama polar.", "Zat L tersusun atas molekul-molekul kovalen yang ditarik oleh gaya antarmolekul lemah."],
+    kunci: [true, false, false, true],
+    pembahasan: "K: titik leleh tinggi, lelehan menghantar, larut air, tidak larut benzena adalah ciri senyawa ionik (1 benar). Lelehan menghantar karena ion-ion bebas bergerak, bukan elektron valensi (2 salah). L tidak larut dalam air tetapi larut dalam benzena, jadi L nonpolar, bukan polar (3 salah). Titik leleh rendah dan tidak menghantar pada semua fase menunjukkan zat molekular kovalen dengan gaya antarmolekul lemah (4 benar)." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Kimia", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Struktur atom, ikatan, stoikiometri, asam basa, termokimia, laju dan kesetimbangan, redoks, kimia organik"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

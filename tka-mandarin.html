@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Bahasa Mandarin</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Bahasa Mandarin<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA BAHASA MANDARIN (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-mandarin-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Bahasa Mandarin (setara HSK 2-3) ===== */
+const TXT_1 = "通知：下个星期三下午两点，我们在学校礼堂开会。请大家带笔和本子，不要迟到。  Pinyin: Tōngzhī: Xià ge xīngqī sān xiàwǔ liǎng diǎn, wǒmen zài xuéxiào lǐtáng kāihuì. Qǐng dàjiā dài bǐ hé běnzi, bú yào chídào.";
+
+const TXT_2 = "小红，我今天感冒了，不能去上学。请你帮我告诉老师，作业明天再交。谢谢你！——小明  Pinyin: Xiǎohóng, wǒ jīntiān gǎnmào le, bù néng qù shàngxué. Qǐng nǐ bāng wǒ gàosu lǎoshī, zuòyè míngtiān zài jiāo. Xièxie nǐ! —— Xiǎomíng";
+
+const TXT_3 = "下面是从上海到南京的火车时刻表。  Pinyin: Xiàmiàn shì cóng Shànghǎi dào Nánjīng de huǒchē shíkèbiǎo.";
+const TBL_3 = { kepala: ["车次 (chēcì)", "出发 (chūfā)", "到达 (dàodá)", "票价 (piàojià)"], baris: [["G101", "08:00", "09:30", "135元"], ["G103", "09:15", "10:30", "145元"], ["K201", "07:00", "09:30", "60元"], ["K203", "10:00", "12:30", "60元"]] };
+
+const TXT_4 = "我叫王华，今年十七岁，是高中生。周末我常常和朋友去体育馆打篮球。上个星期六我们打了两个小时，打完以后去吃了面条。虽然很累，但是我们很高兴。下个周末我想去图书馆看书，因为下星期有考试。  Pinyin: Wǒ jiào Wáng Huá, jīnnián shíqī suì, shì gāozhōngshēng. Zhōumò wǒ chángcháng hé péngyou qù tǐyùguǎn dǎ lánqiú. Shàng ge xīngqīliù wǒmen dǎle liǎng ge xiǎoshí, dǎwán yǐhòu qù chīle miàntiáo. Suīrán hěn lèi, dànshì wǒmen hěn gāoxìng. Xià ge zhōumò wǒ xiǎng qù túshūguǎn kànshū, yīnwèi xià xīngqī yǒu kǎoshì.";
+
+const SOAL = [
+  /* ---------- Pengumuman (1-3) ---------- */
+  { tipe: "pg", stimulus: TXT_1,
+    pertanyaan: "会议是什么时候开？ (Huìyì shì shénme shíhou kāi?)",
+    opsi: ["下个星期二上午两点", "这个星期三下午两点", "下个星期三下午两点", "下个星期三上午两点", "下个星期三下午四点"], kunci: 2,
+    pembahasan: "Pengumuman menyebut 下个星期三下午两点 (Rabu minggu depan, pukul dua siang). Pengecoh mengubah hari (二), minggu (这个 = minggu ini), waktu (上午 = pagi), atau jam (四点)." },
+
+  { tipe: "pg", stimulus: TXT_1,
+    pertanyaan: "会议在哪里开？ (Huìyì zài nǎlǐ kāi?)",
+    opsi: ["学校礼堂", "教室", "图书馆", "体育馆", "办公室"], kunci: 0,
+    pembahasan: "Kalimat 我们在学校礼堂开会 berarti rapat diadakan di aula sekolah (礼堂)." },
+
+  { tipe: "kategori", stimulus: TXT_1,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut sesuai dengan teks (Benar) atau tidak sesuai (Salah).",
+    pernyataan: ["会议在下午开。", "大家要带手机。", "大家可以晚一点来。", "大家要带笔和本子。"], kunci: [true, false, false, true],
+    pembahasan: "(1) Benar: 下午两点. (2) Salah: yang dibawa 笔和本子 (pena dan buku), bukan ponsel. (3) Salah: 不要迟到 = jangan terlambat. (4) Benar: 请大家带笔和本子." },
+
+  /* ---------- Pesan (4-6) ---------- */
+  { tipe: "pg", stimulus: TXT_2,
+    pertanyaan: "小明今天为什么不去上学？ (Xiǎomíng jīntiān wèishénme bú qù shàngxué?)",
+    opsi: ["他没有作业", "他感冒了", "他要去看朋友", "他不喜欢老师", "今天放假"], kunci: 1,
+    pembahasan: "Pesan menyatakan 我今天感冒了，不能去上学: Xiaoming flu sehingga tidak bisa ke sekolah." },
+
+  { tipe: "pg", stimulus: TXT_2,
+    pertanyaan: "小明请小红做什么？ (Xiǎomíng qǐng Xiǎohóng zuò shénme?)",
+    opsi: ["给他买药", "帮他写作业", "明天去他家", "把作业今天交给老师", "把他生病的事告诉老师"], kunci: 4,
+    pembahasan: "请你帮我告诉老师 = tolong bantu aku memberi tahu guru. Pengecoh: PR baru diserahkan besok (作业明天再交), bukan hari ini; tidak ada permintaan membeli obat atau berkunjung." },
+
+  { tipe: "mcma", stimulus: TXT_2,
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["小明今天不能去上学。", "小明今天要交作业。", "小明明天交作业。", "小红是小明的老师。", "小明请小红帮忙。"], kunci: [0, 2, 4],
+    pembahasan: "(A) benar. (B) salah: PR diserahkan besok. (C) benar: 作业明天再交. (D) salah: Xiaohong adalah teman, bukan guru. (E) benar: 请你帮我." },
+
+  /* ---------- Jadwal kereta (7-9) ---------- */
+  { tipe: "pg", stimulus: TXT_3, tabel: TBL_3,
+    pertanyaan: "哪一班火车路上用的时间最短？ (Nǎ yì bān huǒchē lùshang yòng de shíjiān zuì duǎn?)",
+    opsi: ["K203", "K201", "G101", "K201和K203", "G103"], kunci: 4,
+    pembahasan: "Lama perjalanan: G101 = 1 jam 30 menit; G103 = 09:15 sampai 10:30 = 1 jam 15 menit; K201 dan K203 masing-masing 2 jam 30 menit. Terpendek: G103." },
+
+  { tipe: "pg", stimulus: TXT_3, tabel: TBL_3,
+    pertanyaan: "小李想在十点以前到南京，而且想要最便宜的票。他应该坐哪一班？ (Xiǎo Lǐ xiǎng zài shí diǎn yǐqián dào Nánjīng, érqiě xiǎng yào zuì piányi de piào. Tā yīnggāi zuò nǎ yì bān?)",
+    opsi: ["K201", "G101", "G103", "K203", "没有这样的火车"], kunci: 0,
+    pembahasan: "Tiba sebelum pukul 10:00: G101 (09:30, 135元) dan K201 (09:30, 60元). G103 tiba 10:30 dan K203 tiba 12:30, terlambat. Di antara dua yang tersisa, yang termurah adalah K201 (60元)." },
+
+  { tipe: "mcma", stimulus: TXT_3, tabel: TBL_3,
+    pertanyaan: "Pilih semua pernyataan yang benar menurut jadwal.",
+    opsi: ["K201的票价比G103便宜。", "G101比G103先出发。", "K203十二点半到达。", "G101比G103快。", "K203比K201便宜。"], kunci: [0, 1, 2],
+    pembahasan: "(A) benar: 60元 < 145元. (B) benar: 08:00 lebih awal dari 09:15. (C) benar: tiba 12:30. (D) salah: G101 1 jam 30 menit, G103 hanya 1 jam 15 menit. (E) salah: harga K201 dan K203 sama, 60元." },
+
+  /* ---------- Teks pendek (10-13) ---------- */
+  { tipe: "pg", stimulus: TXT_4,
+    pertanyaan: "王华周末常常做什么？ (Wáng Huá zhōumò chángcháng zuò shénme?)",
+    opsi: ["去图书馆看书", "吃面条", "和朋友打篮球", "在家睡觉", "去考试"], kunci: 2,
+    pembahasan: "Teks: 周末我常常和朋友去体育馆打篮球. Membaca di perpustakaan baru rencana akhir pekan depan." },
+
+  { tipe: "pg", stimulus: TXT_4,
+    pertanyaan: "王华下个周末为什么想去图书馆？ (Wáng Huá xià ge zhōumò wèishénme xiǎng qù túshūguǎn?)",
+    opsi: ["他很累", "下星期有考试", "他喜欢吃面条", "朋友在那里", "体育馆关门了"], kunci: 1,
+    pembahasan: "Kata 因为 menandai alasan: 因为下星期有考试 (karena minggu depan ada ujian)." },
+
+  { tipe: "kategori", stimulus: TXT_4,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut sesuai dengan teks (Benar) atau tidak sesuai (Salah).",
+    pernyataan: ["王华是大学生。", "他们打了两个小时篮球。", "打完球以后他们回家了。", "他们虽然很累，但是很高兴。"], kunci: [false, true, false, true],
+    pembahasan: "(1) Salah: dia 高中生 (siswa SMA). (2) Benar: 打了两个小时. (3) Salah: mereka pergi makan mi (去吃了面条). (4) Benar: 虽然很累，但是我们很高兴." },
+
+  { tipe: "mcma", stimulus: TXT_4,
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["王华十七岁。", "他常常一个人打篮球。", "他们打完球以后去吃饭。", "他下星期有考试。", "他下个周末想去体育馆。"], kunci: [0, 2, 3],
+    pembahasan: "(A) benar. (B) salah: 和朋友 (bersama teman). (C) benar: makan mi setelah main. (D) benar. (E) salah: akhir pekan depan ia ingin ke perpustakaan." },
+
+  /* ---------- Tata bahasa (14-25) ---------- */
+  { tipe: "pg", stimulus: "请你____窗户关上，外面很冷。  Pinyin: Qǐng nǐ ____ chuānghu guān shàng, wàimiàn hěn lěng.",
+    pertanyaan: "Pilih kata yang tepat untuk mengisi bagian kosong. 哪个词最合适？",
+    opsi: ["被", "让", "对", "把", "和"], kunci: 3,
+    pembahasan: "Pola 把 + objek + kata kerja + hasil: 把窗户关上 (tutup jendela). 被 dan 让 menandai kalimat pasif/kausatif, 对 dan 和 tidak membentuk pola ini." },
+
+  { tipe: "pg", stimulus: "哥哥十八岁，我十五岁。哥哥____我大三岁。  Pinyin: Gēge shíbā suì, wǒ shíwǔ suì. Gēge ____ wǒ dà sān suì.",
+    pertanyaan: "Pilih kata yang tepat untuk mengisi bagian kosong. 哪个词最合适？",
+    opsi: ["比", "跟", "和", "把", "被"], kunci: 0,
+    pembahasan: "Perbandingan memakai pola A 比 B + sifat + selisih: 哥哥比我大三岁 (kakak lebih tua tiga tahun dari saya)." },
+
+  { tipe: "pg", stimulus: "我从来没吃____这种水果。  Pinyin: Wǒ cónglái méi chī ____ zhè zhǒng shuǐguǒ.",
+    pertanyaan: "Pilih kata yang tepat untuk mengisi bagian kosong. 哪个词最合适？",
+    opsi: ["了", "吗", "呢", "吧", "过"], kunci: 4,
+    pembahasan: "过 menyatakan pengalaman, dan 没...过 berarti belum pernah: 没吃过 (belum pernah makan). 了 tidak dipakai bersama 没 untuk makna ini; 吗, 呢, 吧 adalah partikel akhir kalimat." },
+
+  { tipe: "pg", stimulus: "昨天晚上我看____一个很有意思的电影。  Pinyin: Zuótiān wǎnshang wǒ kàn ____ yí ge hěn yǒu yìsi de diànyǐng.",
+    pertanyaan: "Pilih kata yang tepat untuk mengisi bagian kosong. 哪个词最合适？",
+    opsi: ["吗", "了", "吧", "的", "呢"], kunci: 1,
+    pembahasan: "Tindakan yang selesai di masa lalu memakai 了 setelah kata kerja: 看了一个电影. Opsi lain tidak dapat diletakkan di antara kata kerja dan jumlah + objek." },
+
+  { tipe: "pg", stimulus: "____今天身体不舒服，____他没有来上课。  Pinyin: ____ jīntiān shēntǐ bù shūfu, ____ tā méiyǒu lái shàngkè.",
+    pertanyaan: "Pilih pasangan kata penghubung yang tepat. 哪一组最合适？",
+    opsi: ["虽然……但是", "如果……就", "因为……所以", "不但……而且", "一边……一边"], kunci: 2,
+    pembahasan: "Hubungan sebab-akibat: 因为 (karena) badan tidak enak, 所以 (maka) ia tidak masuk kelas. Pasangan lain menyatakan pertentangan, pengandaian, penambahan, atau dua kegiatan bersamaan." },
+
+  { tipe: "mcma", stimulus: "Perhatikan kalimat-kalimat berikut. 请看下面的句子。",
+    pertanyaan: "Pilih semua kalimat yang benar.",
+    opsi: ["请把书给我。", "请书把给我。", "他没把钱带来。", "他把没钱带来。", "我把手机忘在家里了。"], kunci: [0, 2, 4],
+    pembahasan: "Pola 把 harus: 把 + objek + kata kerja. Kata negasi 没 diletakkan sebelum 把 (没把钱带来). (B) dan (D) salah urutan." },
+
+  { tipe: "mcma", stimulus: "Perhatikan kalimat-kalimat berikut. 请看下面的句子。",
+    pertanyaan: "Pilih semua kalimat yang benar.",
+    opsi: ["我去过长城。", "我去过没长城。", "他昨天买了一件衣服。", "他买了昨天一件衣服。", "我没吃过羊肉。"], kunci: [0, 2, 4],
+    pembahasan: "了 dan 过 mengikuti kata kerja; keterangan waktu (昨天) berada sebelum kata kerja. (B) salah karena 没 tidak boleh diselipkan setelah 过. (D) salah karena 昨天 diletakkan setelah 了." },
+
+  { tipe: "mcma", stimulus: "Perhatikan kalimat-kalimat berikut. 请看下面的句子。",
+    pertanyaan: "Pilih semua kalimat dengan urutan kata yang benar.",
+    opsi: ["我们常常在图书馆看书。", "我们在常常图书馆看书。", "他每天早上七点起床。", "他起床每天早上七点。", "她在商店买了一件衣服。"], kunci: [0, 2, 4],
+    pembahasan: "Urutan umum: subjek + waktu/frekuensi + tempat (在...) + kata kerja + objek. (B) salah karena 常常 harus sebelum 在. (D) salah karena keterangan waktu tidak boleh sesudah kata kerja." },
+
+  { tipe: "mcma", stimulus: "Perhatikan pasangan kata berikut. 请看下面的词语。",
+    pertanyaan: "Pilih semua pasangan kata yang berlawanan arti.",
+    opsi: ["大——小", "高——矮", "冷——快", "多——少", "吃——远"], kunci: [0, 1, 3],
+    pembahasan: "大-小 (besar-kecil), 高-矮 (tinggi-pendek), 多-少 (banyak-sedikit) berlawanan. 冷 (dingin) dan 快 (cepat), 吃 (makan) dan 远 (jauh) tidak berhubungan." },
+
+  { tipe: "kategori", stimulus: "Perhatikan kalimat-kalimat tentang perbandingan dan pengalaman. 请看下面的句子。",
+    pertanyaan: "Tentukan apakah setiap kalimat berikut benar secara tata bahasa (Benar) atau salah (Salah).",
+    pernyataan: ["姐姐比我大两岁。", "他比我很聪明。", "我没去过日本。", "我没去了日本。"], kunci: [true, false, true, false],
+    pembahasan: "(1) Benar. (2) Salah: kalimat dengan 比 tidak memakai 很; yang benar 他比我聪明 atau 他比我聪明得多. (3) Benar: 没...过 untuk pengalaman. (4) Salah: 没 tidak berpasangan dengan 了 dalam makna ini." },
+
+  { tipe: "kategori", stimulus: "Perhatikan kalimat-kalimat dengan kata penghubung berikut. 请看下面的句子。",
+    pertanyaan: "Tentukan apakah setiap kalimat berikut benar secara tata bahasa (Benar) atau salah (Salah).",
+    pernyataan: ["因为下雨，所以我们没去爬山。", "因为下雨，但是我们没去爬山。", "虽然天气冷，但是他穿得很少。", "虽然天气冷，所以他穿得很少。"], kunci: [true, false, true, false],
+    pembahasan: "因为 berpasangan dengan 所以 (sebab-akibat), 虽然 berpasangan dengan 但是 (pertentangan). Kalimat (2) dan (4) memakai pasangan yang salah." },
+
+  { tipe: "kategori", stimulus: "Perhatikan frasa dengan kata bantu bilangan (量词) berikut. 请看下面的短语。",
+    pertanyaan: "Tentukan apakah setiap frasa berikut benar (Benar) atau salah (Salah).",
+    pernyataan: ["一张纸", "一只书", "两杯茶", "三件桌子"], kunci: [true, false, true, false],
+    pembahasan: "纸 memakai 张, 茶 memakai 杯. Buku memakai 本 (bukan 只), dan meja memakai 张 (bukan 件; 件 untuk pakaian atau urusan)." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Bahasa", el("br"), "Mandarin", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Pemahaman teks pendek dengan pinyin, kosakata, kata bantu bilangan, 把, 了, 过, 比, kalimat majemuk"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

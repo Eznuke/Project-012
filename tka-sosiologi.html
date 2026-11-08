@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Sosiologi</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Sosiologi<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA SOSIOLOGI (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-sosiologi-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== MAPEL: SOSIOLOGI (TKA SMA) - 25 soal orisinal ===== */
+
+const TXT_PERAN = "Bu Wulan adalah guru Bahasa Indonesia di sebuah SMA negeri. Di luar sekolah ia menjabat ketua koperasi simpan pinjam warga RW 05 dan merawat dua anaknya yang masih kecil. Pada suatu Kamis, rapat tutup buku koperasi dijadwalkan pukul 19.00, padahal pada hari yang sama anak bungsunya demam dan harus dijaga. Bu Wulan merasa bingung karena kedua tuntutan itu sama-sama harus ia penuhi.";
+
+const TXT_NORMA = "SMA Cahaya Bangsa menjalankan gerakan \"Jumat Bersih\". Sekolah menetapkan bahwa kebersihan dan kepedulian terhadap lingkungan adalah hal yang dijunjung bersama oleh seluruh warga sekolah. Untuk mewujudkannya dibuat aturan: sampah wajib dipilah ke tiga tong sesuai jenisnya, dan siswa yang kedapatan membuang sampah sembarangan dikenai pengurangan 5 poin kedisiplinan.";
+
+const TXT_PENGENDALIAN = "Warga RW 07 Kampung Sidomulyo memasang kamera CCTV di tiga titik rawan dan menyusun jadwal ronda malam. Ketika beberapa remaja kerap berkumpul hingga larut malam, ketua RW tidak menegur dengan keras, tetapi mengajak mereka bicara baik-baik dan membujuk agar kumpul-kumpulnya dipindahkan ke balai warga sebelum pukul 22.00. Sementara itu, warga yang terbukti membuang sampah ke sungai wajib membayar denda sesuai kesepakatan warga.";
+
+const TXT_STRATA = "Sebuah penelitian di Desa Sukamaju melacak pekerjaan 200 anak dewasa dibandingkan dengan pekerjaan ayah mereka. Lapisan bawah mencakup buruh dan petani penggarap, lapisan menengah mencakup pedagang kecil dan pegawai rendah, serta lapisan atas mencakup pengusaha besar dan pejabat. Hasilnya disajikan pada tabel berikut.";
+const TBL_STRATA = { kepala: ["Lapisan asal (ayah)", "Jumlah anak", "Naik lapisan", "Tetap", "Turun lapisan"], baris: [["Bawah", "100", "30", "70", "0"], ["Menengah", "60", "12", "36", "12"], ["Atas", "40", "0", "34", "6"]] };
+
+const TXT_KONFLIK = "Warga Desa Tirta Mulya terbelah ketika sebuah perusahaan berencana membangun pabrik pengolahan ikan di tepi sungai desa. Kelompok pendukung menginginkan lapangan kerja, sedangkan kelompok penolak khawatir limbah mencemari sungai tempat mereka menangkap ikan. Kedua kelompok sempat berunjuk rasa di depan balai desa. Perlu dicatat, banyak warga di kedua kubu sama-sama menjadi anggota pengajian dan kelompok tani yang sama. Kepala desa kemudian mempertemukan kedua pihak dalam musyawarah. Ia hanya memfasilitasi jalannya perundingan dan tidak ikut memutuskan. Hasil kesepakatan yang dibuat kedua pihak sendiri: pabrik wajib memasang instalasi pengolah limbah, sedikitnya 60% pekerja berasal dari warga desa, dan perusahaan menyisihkan dana tahunan untuk pemantauan kualitas sungai.";
+
+const TXT_PERUBAHAN = "Mekarsari adalah desa nelayan yang dalam sepuluh tahun terakhir mengalami perubahan. Sinyal telepon seluler masuk ke desa, dan nelayan mulai menawarkan hasil tangkapan langsung kepada pembeli di kota melalui aplikasi pesan dan lapak daring. Tidak ada program desa yang secara sengaja bertujuan mengurangi kegiatan gotong royong. Upacara sedekah laut tahunan tetap dilaksanakan, tetapi kini sebagian biayanya ditanggung sponsor perusahaan dan acaranya disiarkan langsung di media sosial. Data perbandingan disajikan pada tabel.";
+const TBL_PERUBAHAN = { kepala: ["Indikator", "Tahun 2016", "Tahun 2026"], baris: [["Rumah tangga memiliki ponsel pintar", "15%", "85%"], ["Hasil tangkapan dijual lewat tengkulak", "90%", "40%"], ["Nelayan menjadi anggota koperasi", "10%", "55%"], ["Kegiatan gotong royong bersih pantai per tahun", "12 kali", "4 kali"]] };
+
+const TXT_GLOBAL = "Di Kota Banjarwangi, sebuah jaringan restoran cepat saji asal luar negeri membuka gerai baru. Selain menu standar dunia, gerai itu menjual paket \"nasi, ayam krispi, dan sambal matah\" serta menu khusus bulan Ramadan, dan dindingnya dihiasi motif batik setempat. Di kota yang sama, para pengrajin batik tulis mulai menjual kain ke pembeli luar negeri lewat platform daring, tetapi pada saat yang sama kain bermotif batik hasil cetak mesin impor yang jauh lebih murah membanjiri pasar.";
+
+const TXT_SURVEI = "Seorang peneliti ingin mengetahui hubungan antara lama penggunaan media sosial dan waktu belajar mandiri siswa. Di sebuah kota terdapat 12 SMA dengan total 3.600 siswa kelas XII. Peneliti mengambil 360 siswa secara acak dari tiap sekolah dengan jumlah yang sebanding dengan banyaknya siswa kelas XII di sekolah tersebut, lalu membagikan angket. Hasilnya dirangkum pada tabel.";
+const TBL_SURVEI = { kepala: ["Lama media sosial per hari", "Jumlah responden", "Rata-rata belajar mandiri per hari (menit)"], baris: [["Kurang dari 2 jam", "90", "75"], ["2 sampai 4 jam", "150", "55"], ["Lebih dari 4 jam", "120", "30"]] };
+
+const SOAL = [
+  /* ---------- Interaksi dan struktur sosial (1-2) ---------- */
+  { tipe: "pg",
+    stimulus: "Di sebuah pasar, kelompok petani sayur dan kelompok pedagang kendaraan angkut berselisih soal lahan parkir. Keduanya saling menuduh menyerobot tempat. Setelah dimediasi kepala desa, mereka sepakat petani memakai lahan itu pukul 03.00 sampai 09.00, sedangkan pedagang memakainya pukul 09.00 sampai 17.00. Tidak ada pihak yang sepenuhnya menang, tetapi ketegangan mereda.",
+    pertanyaan: "Bentuk interaksi sosial yang tampak setelah kesepakatan itu adalah ...",
+    opsi: ["Kerja sama, karena kedua pihak mengerjakan satu tujuan yang sama sejak awal", "Akomodasi, karena pertentangan diredakan lewat kesepakatan tanpa menghilangkan perbedaan kepentingan", "Asimilasi, karena kedua kelompok melebur menjadi satu kelompok baru", "Kompetisi, karena kedua pihak masih bersaing memperebutkan lahan", "Akulturasi, karena kedua pihak saling menerima unsur budaya yang berbeda"], kunci: 1,
+    pembahasan: "Akomodasi adalah upaya meredakan pertentangan sehingga tercapai keseimbangan, misalnya lewat kompromi atau mediasi. Pembagian jam pakai lahan adalah kompromi: kepentingan masing-masing tetap ada, tetapi konflik mereda. (A) salah karena awalnya mereka berselisih, bukan mengejar tujuan bersama. (C) asimilasi menuntut peleburan kelompok, yang tidak terjadi. (D) persaingan sudah diatur sehingga bukan bentuk dominan lagi. (E) tidak ada pertukaran unsur budaya." },
+
+  { tipe: "mcma", stimulus: TXT_PERAN,
+    pertanyaan: "Pilih semua pernyataan yang benar berdasarkan kasus tersebut.",
+    opsi: ["Guru, ketua koperasi, dan ibu adalah beberapa status yang dimiliki Bu Wulan secara bersamaan.", "Jabatan ketua koperasi merupakan status bawaan sejak lahir (ascribed status).", "Status guru termasuk status yang diperoleh melalui usaha, yaitu pendidikan dan seleksi (achieved status).", "Kebingungan Bu Wulan menunjukkan terjadinya konflik peran (role conflict).", "Konflik peran terjadi karena Bu Wulan tidak memiliki status yang jelas di masyarakat."], kunci: [0, 2, 3],
+    pembahasan: "(A) benar: seseorang dapat memiliki banyak status sekaligus. (C) benar: menjadi guru memerlukan pendidikan dan seleksi, jadi status diperoleh. (D) benar: tuntutan peran ibu dan peran ketua koperasi berbenturan pada waktu yang sama. (B) salah karena jabatan ketua dipilih anggota, bukan bawaan lahir. (E) salah: konflik peran muncul justru karena ia memiliki beberapa status dengan tuntutan peran yang bertabrakan." },
+
+  /* ---------- Kelompok sosial (3-4) ---------- */
+  { tipe: "pg",
+    stimulus: "Sebuah komunitas pengemudi ojek daring di satu kota mengorganisasi diri dalam grup percakapan beranggotakan 450 orang. Anggota jarang bertemu langsung dan sebagian besar tidak saling mengenal secara pribadi. Hubungan mereka terbatas pada kepentingan pekerjaan, seperti berbagi informasi titik rawan macet dan memperjuangkan tarif. Komunitas memiliki anggaran dasar tertulis, pengurus terpilih, dan iuran bulanan.",
+    pertanyaan: "Tipe kelompok yang paling tepat menggambarkan komunitas itu adalah ...",
+    opsi: ["Paguyuban (gemeinschaft), karena anggotanya sama-sama bekerja sebagai pengemudi", "Kelompok primer, karena keanggotaannya didasarkan pada pertemuan tatap muka yang intensif", "Patembayan (gesellschaft), karena hubungan didasarkan pada kepentingan dan aturan formal", "Paguyuban, karena memiliki anggaran dasar dan pengurus", "Kelompok primer, karena anggotanya jarang bertemu sehingga hubungannya longgar"], kunci: 2,
+    pembahasan: "Patembayan ditandai hubungan yang bersifat rasional, formal, dan berorientasi kepentingan tertentu, dengan aturan tertulis serta pengurus. Ciri-ciri itu sesuai dengan komunitas tersebut. Paguyuban dan kelompok primer justru bercirikan ikatan emosional yang erat dan hubungan pribadi yang intensif, sehingga (A), (B), (D), dan (E) salah. Adanya anggaran dasar bukan ciri paguyuban." },
+
+  { tipe: "kategori",
+    stimulus: "Dina adalah siswa kelas XII yang aktif di ekstrakurikuler robotik sekolah. Ekstrakurikuler itu memiliki pembina, ketua, dan jadwal latihan tetap. Dina menetapkan cita-cita mengikuti kompetisi tingkat nasional. Ia mengukur kemampuan dirinya dengan standar prestasi para alumni robotik yang pernah juara nasional, padahal ia belum pernah bertemu mereka dan bukan bagian dari kelompok mereka.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Para alumni juara nasional berfungsi sebagai kelompok referensi bagi Dina.", "Seseorang harus menjadi anggota suatu kelompok agar kelompok itu dapat menjadi kelompok referensinya.", "Ekstrakurikuler robotik di sekolah itu tergolong kelompok formal.", "Kelompok referensi hanya dapat berpengaruh positif terhadap perilaku seseorang."], kunci: [true, false, true, false],
+    pembahasan: "(1) Benar: Dina memakai standar alumni sebagai acuan menilai diri. (2) Salah: kelompok referensi tidak mengharuskan keanggotaan, dan Dina bukan anggota kelompok alumni. (3) Benar: ada pembina, ketua, dan jadwal tetap, yaitu struktur yang jelas. (4) Salah: kelompok referensi dapat memengaruhi secara positif maupun negatif, misalnya kelompok yang mendorong perilaku menyimpang." },
+
+  /* ---------- Nilai dan norma (5-6) ---------- */
+  { tipe: "pg",
+    stimulus: "Dalam sebuah arisan warga, seorang anggota terbukti menipu: ia membawa kabur uang arisan Rp12 juta. Warga tidak melapor ke polisi. Namun, sejak itu ia dikucilkan dari seluruh kegiatan kampung, tidak ada tetangga yang mau meminjamkan uang atau berbisnis dengannya, dan namanya menjadi bahan pembicaraan yang merendahkan. Warga menilai perbuatan seperti itu mengancam kepercayaan yang menjadi dasar hidup bersama.",
+    pertanyaan: "Tingkatan norma yang dilanggar dan alasannya yang paling tepat adalah ...",
+    opsi: ["Tata kelakuan (mores), karena dianggap merusak tata tertib bersama dan pelanggarnya dikenai sanksi sosial yang berat", "Cara (usage), karena pelanggarnya hanya mendapat teguran ringan", "Hukum, karena pelanggarnya dihukum aparat dengan peraturan tertulis", "Kebiasaan (folkways), karena perbuatan itu sering diulang oleh pelakunya", "Cara (usage), karena pelanggar tidak diproses oleh aparat resmi"], kunci: 0,
+    pembahasan: "Tata kelakuan (mores) adalah norma yang dipandang menjaga tata tertib masyarakat dan pelanggarannya dikenai sanksi sosial yang relatif berat, seperti pengucilan. Cara (usage) hanya menyangkut kesopanan ringan dengan sanksi teguran, sehingga (B) dan (E) salah; tidak adanya aparat resmi bukan ciri cara. (C) salah karena tidak ada penegakan oleh aparat dan aturan tertulis. (D) salah karena kebiasaan mengacu pada perbuatan yang diulang dan diterima baik, bukan perbuatan yang dikecam." },
+
+  { tipe: "mcma", stimulus: TXT_NORMA,
+    pertanyaan: "Pilih semua pernyataan yang benar berdasarkan kasus tersebut.",
+    opsi: ["Kebersihan dan kepedulian lingkungan merupakan nilai sosial yang menjadi pedoman warga sekolah.", "Kewajiban memilah sampah adalah norma yang menerjemahkan nilai menjadi aturan perilaku.", "Nilai bersifat konkret dan disertai sanksi tegas, sedangkan norma bersifat abstrak.", "Pengurangan poin kedisiplinan menunjukkan norma disertai mekanisme penegakan berupa sanksi.", "Norma di sekolah itu tidak berkaitan dengan nilai yang dijunjung."], kunci: [0, 1, 3],
+    pembahasan: "(A) benar: nilai adalah gagasan tentang apa yang dianggap baik dan penting. (B) benar: aturan memilah sampah adalah pedoman perilaku yang mewujudkan nilai. (D) benar: pengurangan poin adalah sanksi yang menegakkan norma. (C) salah karena kebalikannya: nilai bersifat abstrak, norma lebih konkret dan memiliki sanksi. (E) salah karena norma justru dibuat untuk mewujudkan nilai." },
+
+  /* ---------- Penyimpangan dan pengendalian sosial (7-8) ---------- */
+  { tipe: "pg",
+    stimulus: "Fajar pernah tertangkap mencuri sepasang sandal saat kelas VIII dan dihukum bersih-bersih sekolah. Setelah itu warga dan teman-temannya terus memanggilnya \"si maling\", sekolah mencoretnya dari kepanitiaan, dan tidak ada toko yang mau menerimanya bekerja paruh waktu. Merasa tidak punya tempat, Fajar akhirnya bergabung dengan komplotan pencuri sepeda motor dan menjadikan pencurian sebagai mata pencahariannya.",
+    pertanyaan: "Teori yang paling tepat untuk menjelaskan berkembangnya pelanggaran kecil Fajar menjadi pola perilaku menyimpang adalah ...",
+    opsi: ["Asosiasi diferensial, karena Fajar sejak awal mempelajari pencurian dari komplotan", "Anomi, karena tidak ada tujuan budaya yang diakui di masyarakat", "Kontrol sosial, karena ikatan Fajar dengan keluarganya terlalu kuat", "Subkultur menyimpang, karena komplotan itu menjadi sumber nilai bagi seluruh masyarakat", "Labeling (pemberian cap), karena cap \"maling\" dan penolakan masyarakat mendorongnya menerima identitas penyimpang"], kunci: 4,
+    pembahasan: "Teori labeling menyatakan bahwa cap yang diberikan masyarakat terhadap pelaku pelanggaran awal (penyimpangan primer) dapat mendorongnya menerima identitas itu dan melakukan penyimpangan lanjutan (penyimpangan sekunder). Kasus Fajar menonjolkan cap, pengucilan, dan hilangnya kesempatan. (A) tidak sesuai karena pencurian pertamanya tidak dipelajari dari komplotan. (B) tidak ada informasi soal tujuan budaya yang tertutup. (C) tidak ada data tentang ikatan keluarga. (D) komplotan bukan sumber nilai bagi seluruh masyarakat." },
+
+  { tipe: "kategori", stimulus: TXT_PENGENDALIAN,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Jadwal ronda malam merupakan pengendalian sosial yang bersifat preventif.", "Pemasangan CCTV termasuk pengendalian represif karena bekerja setelah pelanggaran terjadi.", "Cara ketua RW mengajak dan membujuk remaja termasuk pengendalian persuasif.", "Denda bagi pembuang sampah ke sungai bersifat represif karena dijatuhkan setelah pelanggaran terbukti."], kunci: [true, false, true, true],
+    pembahasan: "(1) Benar: ronda dilakukan untuk mencegah kejahatan sebelum terjadi. (2) Salah: CCTV dipasang untuk mencegah dan menimbulkan efek jera sebelum pelanggaran, jadi preventif. (3) Benar: persuasif adalah pengendalian dengan ajakan dan bujukan tanpa paksaan. (4) Benar: represif adalah tindakan setelah pelanggaran terjadi untuk memulihkan keadaan, dan denda masuk di dalamnya." },
+
+  /* ---------- Stratifikasi dan mobilitas (9-11) ---------- */
+  { tipe: "pg", stimulus: TXT_STRATA, tabel: TBL_STRATA,
+    pertanyaan: "Persentase anak yang mengalami mobilitas vertikal (naik maupun turun) dari seluruh 200 anak adalah ...",
+    opsi: ["9%", "21%", "42%", "30%", "70%"], kunci: 3,
+    pembahasan: "Naik = 30 + 12 + 0 = 42 anak. Turun = 0 + 12 + 6 = 18 anak. Total mobilitas vertikal = 42 + 18 = 60 anak. Persentase = 60 ÷ 200 × 100% = 30%. 21% hanya mobilitas naik, 9% hanya mobilitas turun, 42% adalah jumlah anak yang naik (bukan persentase), dan 70% adalah persentase anak yang lapisannya tetap (140 ÷ 200)." },
+
+  { tipe: "pg", stimulus: TXT_STRATA, tabel: TBL_STRATA,
+    pertanyaan: "Simpulan yang paling didukung oleh data pada tabel adalah ...",
+    opsi: ["Lapisan atas paling dinamis karena tidak ada anaknya yang naik lapisan.", "Lapisan bawah tertutup sepenuhnya karena anaknya sulit naik.", "Lapisan menengah paling dinamis karena hanya 60% anaknya yang tetap, lebih rendah daripada lapisan lain.", "Mobilitas turun paling banyak terjadi pada anak dari lapisan bawah.", "Karena anak yang naik lebih banyak daripada yang turun, semua lapisan sama terbukanya."], kunci: 2,
+    pembahasan: "Persentase anak yang tetap: bawah 70÷100 = 70%, menengah 36÷60 = 60%, atas 34÷40 = 85%. Lapisan menengah paling rendah, jadi paling dinamis (ada yang naik 12 dan turun 12). (A) salah: lapisan atas tidak bisa naik lagi dan 85% anaknya bertahan. (B) salah karena 30 anak lapisan bawah naik. (D) salah karena anak lapisan bawah tidak ada yang turun. (E) salah karena tingkat keterbukaan tiap lapisan berbeda." },
+
+  { tipe: "mcma", stimulus: TXT_STRATA, tabel: TBL_STRATA,
+    pertanyaan: "Pilih semua pernyataan yang benar berdasarkan tabel.",
+    opsi: ["Jumlah anak yang mengalami mobilitas vertikal naik adalah 42 orang atau 21% dari seluruh anak.", "Mobilitas vertikal turun hanya terjadi pada anak dari lapisan menengah dan atas, dengan total 18 anak.", "Terdapat 30 anak dari lapisan bawah yang mengalami mobilitas vertikal turun.", "Sebanyak 85% anak dari lapisan atas tetap berada di lapisan atas.", "Sebanyak 140 anak mengalami mobilitas horizontal."], kunci: [0, 1, 3],
+    pembahasan: "(A) benar: 30+12+0 = 42, dan 42÷200 = 21%. (B) benar: 12+6 = 18, lapisan bawah 0. (D) benar: 34÷40 = 85%. (C) salah: 30 anak lapisan bawah justru naik, bukan turun. (E) salah: anak yang \"tetap\" pada lapisan yang sama tidak otomatis berpindah pekerjaan pada lapisan sejajar; tabel tidak memberi data mobilitas horizontal." },
+
+  /* ---------- Konflik dan integrasi (12-14) ---------- */
+  { tipe: "pg", stimulus: TXT_KONFLIK,
+    pertanyaan: "Cara penyelesaian konflik yang ditempuh kepala desa dalam kasus tersebut adalah ...",
+    opsi: ["Mediasi, karena pihak ketiga hanya memfasilitasi dan kesepakatan dibuat sendiri oleh pihak yang berkonflik", "Arbitrasi, karena pihak ketiga memutuskan perkara dan putusannya mengikat", "Koersi, karena kepala desa memaksa salah satu pihak menyerah", "Stalemate, karena kedua pihak berhenti berkonflik akibat sama-sama kehabisan kekuatan", "Ajudikasi, karena perkara diselesaikan melalui pengadilan"], kunci: 0,
+    pembahasan: "Pada mediasi, pihak ketiga netral membantu perundingan tanpa menjatuhkan putusan. Kasus menyebut kepala desa hanya memfasilitasi dan kesepakatan dibuat kedua pihak sendiri. Pada arbitrasi (B) pihak ketiga memutus dan keputusannya mengikat. (C) tidak ada paksaan. (D) berhenti bukan karena kehabisan tenaga, tetapi karena ada kesepakatan. (E) tidak ada proses pengadilan." },
+
+  { tipe: "mcma", stimulus: TXT_KONFLIK,
+    pertanyaan: "Pilih semua pernyataan yang benar mengenai integrasi dan konflik dalam kasus tersebut.",
+    opsi: ["Keanggotaan warga dari kedua kubu dalam pengajian dan kelompok tani yang sama dapat meredam ketajaman konflik.", "Kesepakatan kompromi menunjukkan adanya kesamaan nilai bahwa lapangan kerja dan kelestarian sungai sama-sama penting.", "Konflik selalu merusak integrasi dan tidak pernah memiliki fungsi positif bagi masyarakat.", "Integrasi hanya dapat dicapai jika salah satu pihak sepenuhnya menyerah.", "Ketentuan 60% pekerja dari warga desa mengakomodasi kepentingan kelompok pendukung sehingga memperkuat integrasi."], kunci: [0, 1, 4],
+    pembahasan: "(A) benar: keanggotaan silang membuat warga memiliki ikatan di luar kubu konflik. (B) benar: konsensus nilai menjadi dasar kompromi. (E) benar: kuota pekerja lokal dan pemantauan sungai mengakomodasi kepentingan kedua kubu. (C) salah: konflik dapat berfungsi positif, misalnya memunculkan kesepakatan baru. (D) salah: integrasi justru tercapai lewat kesepakatan yang menguntungkan kedua pihak." },
+
+  { tipe: "kategori", stimulus: TXT_KONFLIK,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Sumber utama konflik adalah perbedaan kepentingan antara kelompok pendukung dan penolak pabrik.", "Konflik tersebut tergolong konflik SARA.", "Konflik bersifat manifes (terbuka) karena diwujudkan dalam unjuk rasa.", "Hasil kesepakatan berpola menang-kalah, yaitu satu kubu memperoleh semua tuntutannya."], kunci: [true, false, true, false],
+    pembahasan: "(1) Benar: pendukung mengutamakan lapangan kerja, penolak mengutamakan sungai. (2) Salah: konflik berkaitan dengan kepentingan ekonomi dan lingkungan, bukan suku, agama, ras, atau antargolongan. (3) Benar: unjuk rasa adalah ekspresi terbuka. (4) Salah: kedua kubu memperoleh sebagian tuntutannya, yaitu lapangan kerja dan pengolah limbah, sehingga polanya kompromi (menang-menang)." },
+
+  /* ---------- Perubahan sosial (15-17) ---------- */
+  { tipe: "pg", stimulus: TXT_PERUBAHAN, tabel: TBL_PERUBAHAN,
+    pertanyaan: "Penurunan penjualan lewat tengkulak dari 90% menjadi 40% paling tepat dijelaskan sebagai akibat dari ...",
+    opsi: ["Penolakan nelayan terhadap kerja sama dalam koperasi", "Masuknya teknologi komunikasi yang memberi nelayan akses langsung ke pembeli dan informasi harga sehingga peran perantara berkurang", "Berpindahnya para tengkulak ke kota karena jumlah penduduk desa menurun", "Meningkatnya hasil tangkapan sehingga tengkulak tidak diperlukan lagi", "Larangan pemerintah terhadap praktik tengkulak"], kunci: 1,
+    pembahasan: "Stimulus dan tabel menunjukkan kepemilikan ponsel pintar naik dari 15% ke 85% dan nelayan menawarkan hasil tangkapan langsung lewat aplikasi. Akses langsung ke pembeli mengurangi ketergantungan pada perantara. (A) bertentangan dengan data karena anggota koperasi naik. (C), (D), dan (E) tidak didukung informasi apa pun dalam stimulus." },
+
+  { tipe: "mcma", stimulus: TXT_PERUBAHAN, tabel: TBL_PERUBAHAN,
+    pertanyaan: "Pilih semua pernyataan yang sesuai dengan data pada tabel.",
+    opsi: ["Kepemilikan ponsel pintar naik 70 poin persentase.", "Penjualan lewat tengkulak turun lebih dari separuh dari keadaan semula.", "Keanggotaan nelayan dalam koperasi naik tepat dua kali lipat.", "Frekuensi gotong royong bersih pantai kini tinggal sepertiga dari frekuensi semula.", "Ponsel pintar terbukti menjadi satu-satunya penyebab turunnya gotong royong."], kunci: [0, 1, 3],
+    pembahasan: "(A) benar: 85% - 15% = 70 poin. (B) benar: turun 50 poin dari 90, yaitu sekitar 55,6% dari semula. (D) benar: 4 ÷ 12 = 1/3. (C) salah: 10% menjadi 55% adalah 5,5 kali lipat. (E) salah: tabel menunjukkan korelasi waktu, bukan bukti bahwa ponsel satu-satunya penyebab." },
+
+  { tipe: "kategori", stimulus: TXT_PERUBAHAN, tabel: TBL_PERUBAHAN,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Perubahan di Mekarsari tergolong revolusi karena berlangsung cepat dan direncanakan.", "Berkurangnya gotong royong merupakan dampak yang tidak dikehendaki (unintended) dari perubahan yang terjadi.", "Sedekah laut yang dibiayai sponsor dan disiarkan di media sosial menunjukkan unsur budaya lama bertahan dengan bentuk pelaksanaan yang berubah.", "Seluruh perubahan di desa itu murni disebabkan faktor internal berupa pertambahan penduduk."], kunci: [false, true, true, false],
+    pembahasan: "(1) Salah: perubahan berlangsung bertahap selama sepuluh tahun dan tidak ada rencana khusus, jadi mendekati evolusi. (2) Benar: stimulus menyatakan tidak ada program yang sengaja mengurangi gotong royong. (3) Benar: upacaranya tetap ada, tetapi pembiayaan dan penyiarannya berubah. (4) Salah: pendorong yang tampak adalah faktor dari luar, yaitu masuknya sinyal dan teknologi komunikasi, serta tidak ada data pertambahan penduduk." },
+
+  /* ---------- Globalisasi (18-20) ---------- */
+  { tipe: "pg", stimulus: TXT_GLOBAL,
+    pertanyaan: "Strategi restoran cepat saji yang menambahkan sambal matah, menu Ramadan, dan motif batik pada gerainya paling tepat disebut ...",
+    opsi: ["Homogenisasi budaya, karena seluruh gerai di dunia dibuat seragam", "Asimilasi, karena restoran itu melebur sepenuhnya menjadi usaha tradisional", "Etnosentrisme, karena restoran menganggap budaya asalnya lebih unggul", "Glokalisasi, karena produk global disesuaikan dengan selera dan budaya lokal", "Culture shock, karena pembeli terkejut dengan budaya baru"], kunci: 3,
+    pembahasan: "Glokalisasi adalah penyesuaian produk atau gagasan global dengan konteks budaya setempat, dan inilah yang dilakukan restoran itu. (A) bertentangan dengan fakta adanya penyesuaian lokal. (B) restoran tetap merupakan jaringan global, tidak melebur. (C) penyesuaian justru menghargai budaya setempat. (E) culture shock adalah gangguan psikologis individu, bukan strategi usaha." },
+
+  { tipe: "pg", stimulus: TXT_GLOBAL,
+    pertanyaan: "Strategi yang paling tepat bagi pengrajin batik tulis untuk menghadapi dampak globalisasi dalam kasus tersebut adalah ...",
+    opsi: ["Menurunkan harga sampai setara dengan kain batik cetak mesin impor", "Menolak seluruh teknologi digital agar keaslian batik terjaga", "Meniru motif pabrik agar produk lebih cepat selesai", "Menutup usaha dan beralih menjadi pekerja pabrik tekstil", "Menonjolkan keunikan batik tulis, seperti proses, motif lokal, dan sertifikasi keaslian, sambil memanfaatkan platform daring untuk menjangkau pasar yang lebih luas"], kunci: 4,
+    pembahasan: "Globalisasi membawa peluang (pasar luas lewat platform daring) sekaligus ancaman (kain impor murah). Strategi terbaik memanfaatkan peluang dan menegaskan keunggulan yang tidak dimiliki produk massal, yaitu keunikan dan keaslian. (A) sulit dicapai karena batik tulis padat karya. (B) menutup peluang. (C) menghilangkan keunggulan. (D) mengorbankan warisan usaha tanpa menimbang peluang yang tersedia." },
+
+  { tipe: "mcma", stimulus: "Di Desa Wisata Kopi Sendang, kini banyak hal baru yang terjadi: wisatawan mancanegara mengunggah foto kebun kopi ke media sosial sehingga desa itu dikenal luas, petani menjual biji kopi langsung kepada pembeli di luar negeri lewat platform daring, dan sebuah tarian lokal dipersingkat serta diubah gerakannya agar sesuai dengan selera turis.",
+    pertanyaan: "Pilih semua pernyataan yang benar mengenai dampak globalisasi pada kasus tersebut.",
+    opsi: ["Akses pasar langsung bagi petani kopi ke pembeli luar negeri adalah dampak positif globalisasi di bidang ekonomi.", "Perubahan tarian demi selera turis dapat menjadi komodifikasi budaya bila makna aslinya memudar.", "Perubahan tarian itu membuktikan bahwa budaya lokal pasti punah.", "Globalisasi hanya berdampak pada ekonomi dan tidak memengaruhi budaya.", "Unggahan foto wisatawan di media sosial mempercepat promosi desa melintasi batas negara."], kunci: [0, 1, 4],
+    pembahasan: "(A) benar: kemudahan memasarkan produk ke luar negeri adalah peluang ekonomi. (B) benar: komodifikasi budaya terjadi ketika unsur budaya diubah demi nilai jual sehingga maknanya terkikis. (E) benar: media sosial mempercepat arus informasi lintas negara. (C) salah: satu perubahan tidak membuktikan kepunahan, apalagi \"pasti\". (D) salah: kasus sendiri menunjukkan dampak pada budaya (tarian)." },
+
+  /* ---------- Metode penelitian sosial (21-25) ---------- */
+  { tipe: "pg", stimulus: TXT_SURVEI, tabel: TBL_SURVEI,
+    pertanyaan: "Teknik pengambilan sampel yang digunakan peneliti adalah ...",
+    opsi: ["Proportionate stratified random sampling, karena sampel diambil acak dari tiap sekolah sebanding dengan jumlah siswanya", "Simple random sampling, karena seluruh siswa dimasukkan ke satu undian tanpa memperhatikan sekolah", "Purposive sampling, karena peneliti memilih siswa yang dianggap paling cocok", "Snowball sampling, karena responden menunjuk responden berikutnya", "Quota sampling, karena responden dipilih tidak acak sampai jumlah tertentu terpenuhi"], kunci: 0,
+    pembahasan: "Populasi dibagi ke dalam kelompok (strata), yaitu sekolah. Dari tiap sekolah diambil sampel secara acak dengan jumlah sebanding dengan ukuran sekolah. Ini adalah proportionate stratified random sampling. (B) tidak memperhatikan sekolah. (C) dan (E) tidak acak. (D) tidak ada pola penunjukan antarresponden." },
+
+  { tipe: "pg", stimulus: TXT_SURVEI, tabel: TBL_SURVEI,
+    pertanyaan: "Rata-rata waktu belajar mandiri seluruh 360 responden per hari adalah sekitar ...",
+    opsi: ["53,3 menit", "51,7 menit", "55,0 menit", "50,0 menit", "46,5 menit"], kunci: 1,
+    pembahasan: "Hitung rata-rata tertimbang: (90 × 75 + 150 × 55 + 120 × 30) ÷ 360 = (6.750 + 8.250 + 3.600) ÷ 360 = 18.600 ÷ 360 ≈ 51,7 menit. Nilai 53,3 diperoleh bila ketiga kelompok dirata-ratakan tanpa memperhatikan jumlah responden ((75+55+30) ÷ 3), sehingga keliru." },
+
+  { tipe: "pg", stimulus: TXT_SURVEI, tabel: TBL_SURVEI,
+    pertanyaan: "Simpulan yang paling tepat dan dapat dipertanggungjawabkan dari hasil survei itu adalah ...",
+    opsi: ["Penggunaan media sosial menyebabkan turunnya waktu belajar mandiri siswa.", "Penggunaan media sosial tidak berhubungan dengan waktu belajar mandiri.", "Pada sampel siswa kelas XII di kota tersebut, semakin lama bermedia sosial cenderung semakin singkat waktu belajar mandiri, tetapi hubungan ini belum membuktikan sebab-akibat.", "Hasil survei berlaku bagi seluruh siswa SMA di Indonesia.", "Siswa yang bermedia sosial kurang dari 2 jam pasti belajar mandiri lebih dari 75 menit."], kunci: 2,
+    pembahasan: "Data menunjukkan hubungan negatif: waktu belajar turun dari 75 ke 55 lalu 30 menit seiring lamanya bermedia sosial. Namun, survei hanya menunjukkan hubungan (korelasi), bukan sebab-akibat, karena faktor lain mungkin berperan, dan generalisasinya terbatas pada populasi kota itu. (A) mengklaim kausalitas. (B) bertentangan dengan data. (D) generalisasi berlebihan. (E) angka 75 adalah rata-rata, bukan batas bagi tiap individu." },
+
+  { tipe: "mcma", stimulus: TXT_SURVEI, tabel: TBL_SURVEI,
+    pertanyaan: "Pilih semua pernyataan yang benar mengenai rancangan penelitian tersebut.",
+    opsi: ["Penelitian ini bersifat kuantitatif karena datanya berupa angka yang dapat dianalisis secara statistik.", "Populasi penelitian adalah 3.600 siswa kelas XII dan sampelnya 360 siswa.", "Variabel terikat dalam penelitian ini adalah lama penggunaan media sosial.", "Angket merupakan instrumen pengumpulan data pada metode survei.", "Karena sampel diambil acak, hasilnya pasti sama persis dengan keadaan seluruh populasi."], kunci: [0, 1, 3],
+    pembahasan: "(A) benar: data berupa angka (jumlah responden dan menit). (B) benar: 3.600 adalah seluruh siswa kelas XII di kota itu, sedangkan 360 yang dijadikan sampel. (D) benar: angket adalah alat pengumpul data survei. (C) salah: lama bermedia sosial adalah variabel bebas, sedangkan waktu belajar mandiri adalah variabel terikat. (E) salah: sampel acak mengurangi bias, tetapi selalu ada kemungkinan galat sampel sehingga hasil tidak pasti identik dengan populasi." },
+
+  { tipe: "kategori", stimulus: TXT_SURVEI, tabel: TBL_SURVEI,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Jika pertanyaan angket ternyata mengukur waktu mengerjakan tugas kelompok, bukan belajar mandiri, maka validitas instrumen rendah.", "Reliabilitas berkaitan dengan konsistensi hasil pengukuran apabila pengukuran diulang pada kondisi yang sama.", "Peneliti boleh mempublikasikan nama lengkap responden tanpa izin karena datanya sudah berada di tangan peneliti.", "Hasil penelitian ini sah digeneralisasikan kepada seluruh siswa SMA di Indonesia."], kunci: [true, true, false, false],
+    pembahasan: "(1) Benar: validitas berarti instrumen mengukur apa yang seharusnya diukur. (2) Benar: itulah pengertian reliabilitas. (3) Salah: etika penelitian mewajibkan persetujuan responden dan menjaga kerahasiaan identitas. (4) Salah: sampel hanya mewakili populasi 12 SMA di kota tersebut, bukan seluruh Indonesia." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Sosiologi", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Interaksi sosial, kelompok, norma, penyimpangan, stratifikasi, konflik, perubahan sosial, metode penelitian"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

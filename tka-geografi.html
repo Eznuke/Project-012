@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Geografi</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Geografi<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA GEOGRAFI (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-geografi-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Data soal TKA SMA: GEOGRAFI (25 soal) ===== */
+
+const SOAL = [
+  /* 1 */
+  { tipe: "pg",
+    stimulus: "Sebuah peta wisata Kabupaten Banyuasri memakai skala 1 : 250.000. Pada peta itu, jarak dari pusat kota ke pintu masuk kawasan air terjun diukur dengan penggaris sebesar 8 cm.",
+    pertanyaan: "Jarak sebenarnya antara pusat kota dan pintu masuk kawasan air terjun adalah ...",
+    opsi: ["2 km", "8 km", "20 km", "25 km", "200 km"], kunci: 2,
+    pembahasan: "Jarak sebenarnya = jarak peta × penyebut skala = 8 cm × 250.000 = 2.000.000 cm = 20.000 m = 20 km. Pilihan 2 km muncul bila salah menggeser koma satu tingkat, sedangkan 200 km bila salah dua tingkat." },
+
+  /* 2 */
+  { tipe: "pg",
+    stimulus: "Tiga kecamatan di Kabupaten Tirtajaya akan digabung menjadi satu wilayah pelayanan puskesmas. Data luas wilayah dan jumlah penduduknya disajikan pada tabel.",
+    tabel: { kepala: ["Kecamatan", "Luas (km²)", "Penduduk (jiwa)"], baris: [["Ardana", "30", "42.000"], ["Bukitsari", "50", "60.000"], ["Cemara", "20", "38.000"]] },
+    pertanyaan: "Kepadatan penduduk aritmatik wilayah gabungan ketiga kecamatan tersebut adalah ...",
+    opsi: ["1.200 jiwa/km²", "1.400 jiwa/km²", "1.500 jiwa/km²", "1.900 jiwa/km²", "4.500 jiwa/km²"], kunci: 1,
+    pembahasan: "Kepadatan gabungan dihitung dari total penduduk dibagi total luas: (42.000 + 60.000 + 38.000) ÷ (30 + 50 + 20) = 140.000 ÷ 100 = 1.400 jiwa/km². Kepadatan tiap kecamatan adalah 1.400; 1.200; dan 1.900. Rata-rata sederhananya (4.500 ÷ 3 = 1.500) keliru karena mengabaikan perbedaan luas wilayah. Angka 4.500 hanya hasil menjumlahkan kepadatan." },
+
+  /* 3 */
+  { tipe: "mcma",
+    stimulus: "Kota A terletak pada 105° BT dan Kota B pada 120° BT, pada garis lintang yang hampir sama. Kedua kota memakai waktu lokal menurut meridian pusat masing-masing, yaitu 105° BT untuk Kota A dan 120° BT untuk Kota B.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Selisih waktu kedua kota adalah 1 jam.", "Waktu di Kota A lebih maju daripada waktu di Kota B.", "Jika di Kota A pukul 10.00, di Kota B pukul 11.00.", "Jika di Kota A pukul 10.00, di Kota B pukul 09.00.", "Matahari terbit lebih lambat di Kota B daripada di Kota A."], kunci: [0, 2],
+    pembahasan: "Selisih bujur 120° − 105° = 15°. Karena 15° setara 1 jam (360° ÷ 24 jam), selisih waktunya 1 jam. Kota B berada di timur sehingga waktunya lebih maju: pukul 10.00 di A berarti pukul 11.00 di B. Pernyataan kedua dan keempat membalik arah selisih. Matahari terbit lebih dulu di tempat yang lebih timur, sehingga pernyataan kelima salah." },
+
+  /* 4 */
+  { tipe: "pg",
+    stimulus: "Seismograf mencatat pusat gempa (hiposenter) sepanjang penampang yang tegak lurus pantai selatan sebuah pulau. Semakin jauh dari palung laut ke arah daratan, pusat gempa semakin dalam. Di daratan sekitar 400 km dari palung terdapat rantai gunung api aktif.",
+    tabel: { kepala: ["Jarak dari palung (km)", "Kedalaman hiposenter (km)"], baris: [["100", "20"], ["200", "70"], ["300", "120"], ["400", "180"]] },
+    pertanyaan: "Pola data tersebut paling tepat ditafsirkan sebagai ...",
+    opsi: ["lempeng samudra menunjam miring di bawah lempeng benua ke arah daratan", "dua lempeng saling menjauh sehingga magma naik di sepanjang batas lempeng", "dua lempeng bergeser mendatar tanpa ada yang menunjam", "lempeng benua menunjam di bawah lempeng samudra ke arah laut", "gempa yang dipicu titik panas (hotspot) di tengah lempeng, tidak terkait batas lempeng"], kunci: 0,
+    pembahasan: "Kedalaman gempa yang bertambah teratur ke arah daratan menggambarkan bidang lempeng yang menunjam miring (zona Benioff) pada batas konvergen. Lempeng samudra yang lebih rapat menunjam di bawah lempeng benua, dan magma yang terbentuk pada kedalaman sekitar 100-150 km naik membentuk rantai gunung api di daratan. Batas divergen dan transform tidak menghasilkan pola kedalaman bertambah seperti ini, dan arah penunjaman pada pilihan D terbalik." },
+
+  /* 5 */
+  { tipe: "mcma",
+    stimulus: "Seorang geolog lapangan menemukan lapisan batu gamping dan serpih di lereng bukit pada ketinggian sekitar 800 m di atas permukaan laut. Lapisan itu mengandung fosil kerang dan koral, bertumpuk teratur, dan membentuk lengkungan seperti gelombang dengan kemiringan lapisan mencapai 40°.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Batuan itu berupa batuan sedimen yang semula diendapkan di lingkungan laut dangkal.", "Wilayah itu pernah mengalami pengangkatan oleh tenaga endogen.", "Kemiringan lapisan menunjukkan batuan itu berasal dari pembekuan lava di lereng.", "Lengkungan lapisan terbentuk oleh gaya tekan mendatar (kompresi) yang melipat lapisan.", "Pelapukan oleh hujan adalah penyebab utama terangkatnya batuan itu hingga 800 m."], kunci: [0, 1, 3],
+    pembahasan: "Fosil laut dan lapisan yang bertumpuk teratur menandakan batuan sedimen laut, yang kini berada di 800 m sehingga pernah terangkat oleh tenaga endogen. Lapisan yang melengkung adalah lipatan akibat kompresi. Batuan beku berasal dari pembekuan magma atau lava dan tidak berlapis serta tidak berfosil. Pelapukan adalah proses eksogen yang menghancurkan batuan, bukan yang mengangkatnya." },
+
+  /* 6 */
+  { tipe: "kategori",
+    stimulus: "Tabel berikut memuat tiga kejadian gempa. Gempa dangkal berkedalaman kurang dari 60 km, gempa menengah 60-300 km, dan gempa dalam lebih dari 300 km.",
+    tabel: { kepala: ["Gempa", "Magnitudo", "Kedalaman (km)"], baris: [["Gempa 1", "6,5", "12"], ["Gempa 2", "6,5", "180"], ["Gempa 3", "5,2", "8"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Gempa 2 tergolong gempa dalam.", "Gempa 1 dan Gempa 3 tergolong gempa dangkal.", "Dengan magnitudo yang sama, gempa dangkal (Gempa 1) umumnya lebih merusak di permukaan daripada gempa menengah (Gempa 2).", "Karena selisih magnitudo hanya 1,3, energi Gempa 1 kira-kira hanya 1,25 kali energi Gempa 3."], kunci: [false, true, true, false],
+    pembahasan: "(1) Salah, 180 km termasuk gempa menengah. (2) Benar, 12 km dan 8 km kurang dari 60 km. (3) Benar, sumber yang lebih dekat ke permukaan membuat energi lebih sedikit teredam sebelum mencapai permukaan. (4) Salah, magnitudo bersifat logaritmik; setiap kenaikan 1,0 setara energi sekitar 32 kali, sehingga selisih 1,3 berarti energi sekitar 90 kali lipat." },
+
+  /* 7 */
+  { tipe: "pg",
+    stimulus: "Dalam lima tahun terakhir, sekitar 40% hutan di hulu sebuah DAS diubah menjadi kebun sayur di lereng curam. Dulu, setelah hujan lebat air sungai di hilir naik perlahan dan tetap jernih. Kini banjir datang hanya dua jam setelah hujan mulai dan airnya berwarna cokelat pekat.",
+    pertanyaan: "Penjelasan yang paling tepat tentang perubahan tersebut adalah ...",
+    opsi: ["Curah hujan di hulu meningkat akibat berkurangnya hutan.", "Debit puncak sungai di hilir menurun karena air tertahan di kebun.", "Tanah di hulu menjadi lebih mampu menyerap air karena sering diolah.", "Evapotranspirasi meningkat sehingga lebih banyak air tersimpan di tanah.", "Infiltrasi menurun sehingga limpasan permukaan dan erosi meningkat."], kunci: 4,
+    pembahasan: "Hilangnya tajuk dan akar hutan serta pemadatan tanah menurunkan infiltrasi. Air hujan lebih banyak mengalir di permukaan (limpasan), tiba lebih cepat di hilir, dan membawa material tanah yang membuat air keruh. Deforestasi tidak otomatis menaikkan curah hujan, dan berkurangnya vegetasi justru menurunkan evapotranspirasi serta daya simpan air tanah." },
+
+  /* 8 */
+  { tipe: "kategori",
+    stimulus: "Sebuah sungai berpenampang mendekati persegi panjang dengan lebar 20 m, kedalaman rata-rata 2 m, dan kecepatan aliran rata-rata 0,5 m/s. Debit (Q) = luas penampang × kecepatan aliran.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Debit sungai tersebut adalah 20 m³/s.", "Volume air yang mengalir melewati penampang itu dalam 1 jam adalah 72.000 m³.", "Jika kedalaman menjadi 3 m dengan lebar dan kecepatan tetap, debit menjadi 25 m³/s.", "Debit sungai tidak dipengaruhi oleh tutupan lahan di DAS."], kunci: [true, true, false, false],
+    pembahasan: "(1) Q = 20 × 2 × 0,5 = 20 m³/s, benar. (2) Dalam 3.600 detik, volume = 20 × 3.600 = 72.000 m³, benar. (3) Dengan kedalaman 3 m, Q = 20 × 3 × 0,5 = 30 m³/s, bukan 25. (4) Salah, tutupan lahan memengaruhi infiltrasi dan limpasan sehingga memengaruhi debit." },
+
+  /* 9 */
+  { tipe: "mcma",
+    stimulus: "Sebuah kota pesisir memenuhi kebutuhan air terutama dari sumur bor dalam. Data sepuluh tahun terakhir disajikan pada tabel. Selain itu, bagian utara kota tercatat turun sekitar 8 cm per tahun.",
+    tabel: { kepala: ["Tahun", "Kedalaman muka air sumur (m)", "Klorida air sumur (mg/L)"], baris: [["2014", "3", "150"], ["2024", "9", "1.800"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Memperdalam sumur bor adalah solusi utama untuk mencegah intrusi air laut.", "Pengambilan air tanah berlebihan menurunkan muka air tanah dan dapat menarik air laut masuk ke akuifer.", "Sumur resapan dan lubang biopori membantu imbuhan air tanah.", "Naiknya klorida pasti disebabkan limbah rumah tangga, bukan air laut.", "Penurunan muka tanah dapat terjadi karena lapisan tanah memadat saat air tanah banyak diambil."], kunci: [1, 2, 4],
+    pembahasan: "Muka air tanah turun dari 3 m menjadi 9 m dan klorida naik dari 150 menjadi 1.800 mg/L, tanda intrusi air laut akibat pemompaan berlebihan. Imbuhan lewat sumur resapan atau biopori membantu memulihkan cadangan. Pemadatan akuifer menjelaskan penurunan tanah. Sumur yang lebih dalam justru menambah pengambilan sehingga memperparah keadaan, dan klorida setinggi itu di kota pesisir menunjuk ke air laut, bukan limbah domestik." },
+
+  /* 10 */
+  { tipe: "pg",
+    stimulus: "Stasiun hujan di Kabupaten Karangsari mencatat rata-rata selama 10 tahun: 7 bulan basah (curah hujan lebih dari 100 mm), 3 bulan kering (kurang dari 60 mm), dan 2 bulan lembap. Klasifikasi Schmidt-Ferguson memakai nilai Q = rata-rata bulan kering ÷ rata-rata bulan basah, dengan pembagian tipe iklim pada tabel.",
+    tabel: { kepala: ["Tipe iklim", "Nilai Q"], baris: [["A", "0 ≤ Q < 0,143"], ["B", "0,143 ≤ Q < 0,333"], ["C", "0,333 ≤ Q < 0,600"], ["D", "0,600 ≤ Q < 1,000"], ["E", "1,000 ≤ Q < 1,670"], ["F", "1,670 ≤ Q < 3,000"]] },
+    pertanyaan: "Tipe iklim Karangsari menurut klasifikasi tersebut adalah ...",
+    opsi: ["Tipe B", "Tipe C", "Tipe D", "Tipe E", "Tipe F"], kunci: 1,
+    pembahasan: "Q = 3 ÷ 7 ≈ 0,43, yang berada pada rentang 0,333 ≤ Q < 0,600 sehingga tipe C. Bulan lembap tidak dipakai dalam rumus. Tipe B muncul bila bulan kering dibagi 12 (0,25), dan tipe F bila rasio dibalik (7 ÷ 3 ≈ 2,33)." },
+
+  /* 11 */
+  { tipe: "pg",
+    stimulus: "Kota pesisir Lembahrejo berada pada ketinggian 200 m di atas permukaan laut dengan suhu rata-rata 28°C. Di puncak bukit di dekat kota, pada ketinggian 1.700 m dpl, akan dibangun stasiun cuaca. Anggap suhu turun 0,6°C setiap kenaikan 100 m.",
+    pertanyaan: "Suhu rata-rata di puncak bukit tersebut adalah ...",
+    opsi: ["9°C", "17,8°C", "19°C", "20,5°C", "37°C"], kunci: 2,
+    pembahasan: "Beda tinggi = 1.700 − 200 = 1.500 m, sehingga penurunan suhu = 1.500 ÷ 100 × 0,6 = 9°C. Suhu puncak = 28 − 9 = 19°C. Pilihan 17,8°C muncul bila beda tinggi dihitung dari 0 m dpl (1.700 m), 9°C hanya selisih suhu, 20,5°C bila memakai 0,5°C/100 m, dan 37°C bila suhu justru ditambah." },
+
+  /* 12 */
+  { tipe: "mcma",
+    stimulus: "Tabel berikut memuat curah hujan bulan Oktober di sebuah stasiun di Jawa pada tiga kondisi.",
+    tabel: { kepala: ["Kondisi", "Curah hujan Oktober (mm)"], baris: [["Normal", "220"], ["El Niño", "90"], ["La Niña", "340"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar berdasarkan tabel dan pengetahuanmu.",
+    opsi: ["Pada tahun El Niño, curah hujan Oktober turun sekitar 59% dari kondisi normal.", "Pada tahun La Niña, curah hujan Oktober hanya naik sekitar 20% dari kondisi normal.", "Curah hujan Oktober pada tahun La Niña lebih tinggi 120 mm daripada kondisi normal.", "Kondisi El Niño meningkatkan risiko kekeringan dan kebakaran hutan serta lahan di wilayah ini.", "Data tersebut menunjukkan bahwa El Niño menambah curah hujan di wilayah ini."], kunci: [0, 2, 3],
+    pembahasan: "El Niño: (220 − 90) ÷ 220 ≈ 59% lebih rendah dari normal, dan kondisi ini memperbesar risiko kekeringan serta kebakaran. La Niña: 340 − 220 = 120 mm di atas normal, atau 120 ÷ 220 ≈ 55%, bukan 20%. Data justru menunjukkan El Niño mengurangi hujan, bukan menambah." },
+
+  /* 13 */
+  { tipe: "kategori",
+    stimulus: "Konsentrasi rata-rata karbon dioksida (CO₂) di atmosfer pada tiga tahun pengamatan dicatat sebagai berikut.",
+    tabel: { kepala: ["Tahun", "Konsentrasi CO₂ (ppm)"], baris: [["2000", "370"], ["2010", "390"], ["2020", "413"]] },
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Kenaikan CO₂ pada dekade 2010-2020 lebih besar daripada dekade 2000-2010.", "Kenaikan rata-rata CO₂ per tahun selama 2000-2020 adalah 2,5 ppm.", "Efek rumah kaca alami diperlukan agar suhu bumi tetap hangat; peningkatan gas rumah kaca menimbulkan pemanasan tambahan.", "Efek rumah kaca terjadi karena lapisan ozon berlubang sehingga panas terperangkap."], kunci: [true, false, true, false],
+    pembahasan: "(1) Benar: 390 − 370 = 20 ppm, sedangkan 413 − 390 = 23 ppm. (2) Salah: (413 − 370) ÷ 20 = 2,15 ppm per tahun. (3) Benar: tanpa efek rumah kaca alami suhu bumi jauh lebih dingin, tetapi tambahan gas menahan lebih banyak panas. (4) Salah: efek rumah kaca disebabkan gas yang menyerap radiasi inframerah, sedangkan lubang ozon berkaitan dengan radiasi ultraviolet." },
+
+  /* 14 */
+  { tipe: "pg",
+    stimulus: "Sebuah desa pesisir diperkirakan menerima gelombang tsunami 25 menit setelah gempa kuat. Titik evakuasi di bukit berjarak 2,4 km dari permukiman melalui jalan setapak. Kecepatan jalan kaki rata-rata warga, termasuk lansia dan anak-anak, adalah 4 km/jam. Anggap warga mulai bergerak tepat saat gempa berhenti.",
+    pertanyaan: "Kesimpulan dan rekomendasi yang paling tepat adalah ...",
+    opsi: ["Cukup, sebab waktu tempuh hanya 24 menit sehingga lebih singkat daripada 25 menit.", "Cukup, sebab jarak 2,4 km tergolong dekat sehingga tidak perlu tambahan sarana evakuasi.", "Tidak cukup, tetapi cukup diatasi dengan menambah jumlah sirene tanpa mengubah jalur atau lokasi evakuasi.", "Tidak cukup, karena waktu tempuh 36 menit melebihi 25 menit; perlu titik kumpul yang lebih dekat atau bangunan evakuasi vertikal.", "Tidak dapat dinilai, sebab kecepatan jalan kaki tidak memengaruhi waktu evakuasi."], kunci: 3,
+    pembahasan: "Waktu tempuh = 2,4 km ÷ 4 km/jam = 0,6 jam = 36 menit, lebih lama daripada 25 menit sehingga sebagian warga tidak sempat selamat. Mitigasi yang tepat adalah memperpendek jarak evakuasi dengan titik kumpul yang lebih dekat atau membangun tempat evakuasi sementara vertikal. Sirene hanya mempercepat peringatan, tidak memperpendek waktu tempuh. Waktu 24 menit berasal dari kesalahan hitung." },
+
+  /* 15 */
+  { tipe: "mcma",
+    stimulus: "Dusun Lerengasri berada di lereng dengan kemiringan sekitar 35%, berlapis tanah lempung tebal, dan sebagian lerengnya gundul bekas kebun. Setelah hujan 150 mm dalam sehari, muncul retakan melengkung di tanah dan air sumur warga menjadi keruh.",
+    pertanyaan: "Pilih semua tindakan mitigasi yang tepat untuk dusun tersebut.",
+    opsi: ["Menanam vegetasi berakar dalam dan kuat pada lereng yang gundul.", "Membuat saluran drainase untuk mengalirkan air permukaan menjauhi lereng.", "Memotong kaki lereng lebih curam agar tersedia lahan untuk rumah baru.", "Mengairi sawah di bagian atas lereng secara terus-menerus agar tanah tetap lembap.", "Memasang sistem peringatan dini dan menyiapkan jalur serta tempat evakuasi."], kunci: [0, 1, 4],
+    pembahasan: "Retakan melengkung dan air keruh adalah tanda gerakan tanah. Akar pohon mengikat tanah, drainase mengurangi air yang meresap ke bidang gelincir, dan peringatan dini serta jalur evakuasi mengurangi korban. Memotong kaki lereng menghilangkan penahan lereng, dan menggenangi bagian atas lereng menjenuhkan tanah sehingga keduanya justru memperbesar risiko longsor." },
+
+  /* 16 */
+  { tipe: "pg",
+    stimulus: "Citra satelit dengan resolusi spasial 30 m × 30 m per piksel dipakai untuk memantau kawasan hutan lindung seluas 90 hektare (1 ha = 10.000 m²).",
+    pertanyaan: "Jumlah piksel yang menutupi kawasan hutan lindung itu adalah ...",
+    opsi: ["1.000 piksel", "100 piksel", "3.000 piksel", "30.000 piksel", "900.000 piksel"], kunci: 0,
+    pembahasan: "Luas kawasan = 90 × 10.000 = 900.000 m². Luas satu piksel = 30 × 30 = 900 m². Jumlah piksel = 900.000 ÷ 900 = 1.000. Angka 30.000 muncul bila 900.000 dibagi 30 (bukan 900), dan 900.000 bila satu piksel dianggap 1 m²." },
+
+  /* 17 */
+  { tipe: "pg",
+    stimulus: "Pemerintah kabupaten akan menentukan lahan layak untuk permukiman baru dengan tiga syarat: (1) lereng kurang dari 15%, (2) berada di luar sempadan sungai 50 m, dan (3) bukan sawah beririgasi. Data yang tersedia adalah layer kemiringan lereng, layer jaringan sungai, dan layer tutupan lahan.",
+    pertanyaan: "Urutan analisis SIG yang paling tepat adalah ...",
+    opsi: ["Georeferensi ketiga layer, lalu klasifikasi citra tanpa tumpang susun.", "Buffer pada layer lereng, kemudian query pada layer sungai.", "Overlay layer sungai dan layer lereng saja, lalu interpolasi luas sawah.", "Interpolasi titik tinggi, lalu mozaik ketiga layer menjadi satu citra.", "Buffer 50 m pada layer sungai, overlay dengan layer lereng dan tutupan lahan, lalu seleksi (query) area yang memenuhi ketiga syarat."], kunci: 4,
+    pembahasan: "Sempadan sungai 50 m dibuat dengan buffer pada layer sungai. Ketiga syarat harus dipenuhi sekaligus, sehingga layer digabung dengan overlay (tumpang susun) dan area yang memenuhi syarat dipilih dengan query. Buffer pada layer lereng tidak bermakna, dan georeferensi, interpolasi, atau mozaik tidak menggabungkan syarat-syarat tersebut." },
+
+  /* 18 */
+  { tipe: "pg",
+    stimulus: "Berikut struktur penduduk Kota Mekarjaya menurut kelompok umur.",
+    tabel: { kepala: ["Kelompok umur (tahun)", "Jumlah (jiwa)"], baris: [["0-14", "30.000"], ["15-64", "100.000"], ["65 ke atas", "10.000"]] },
+    pertanyaan: "Angka ketergantungan (dependency ratio) kota tersebut, dinyatakan dalam jiwa per 100 penduduk usia produktif, adalah ...",
+    opsi: ["10", "29", "30", "40", "140"], kunci: 3,
+    pembahasan: "Angka ketergantungan = (usia 0-14 + usia 65 ke atas) ÷ usia 15-64 × 100 = (30.000 + 10.000) ÷ 100.000 × 100 = 40. Artinya, 100 penduduk usia produktif menanggung 40 penduduk tidak produktif. Nilai 10 dan 30 hanya menghitung satu kelompok tanggungan, 29 membagi dengan total penduduk (40.000 ÷ 140.000), dan 140 membagi total penduduk dengan usia produktif." },
+
+  /* 19 */
+  { tipe: "pg",
+    stimulus: "Data kependudukan Kota Bandarsari selama tahun 2024.",
+    tabel: { kepala: ["Komponen", "Jumlah (jiwa)"], baris: [["Penduduk awal tahun", "600.000"], ["Kelahiran", "12.000"], ["Kematian", "4.000"], ["Migran masuk", "9.000"], ["Migran keluar", "5.000"]] },
+    pertanyaan: "Laju pertumbuhan penduduk total Kota Bandarsari pada tahun 2024 adalah ...",
+    opsi: ["0,67%", "1,33%", "2,00%", "2,83%", "3,50%"], kunci: 2,
+    pembahasan: "Pertumbuhan alami = 12.000 − 4.000 = 8.000. Migrasi neto = 9.000 − 5.000 = 4.000. Pertumbuhan total = 12.000 jiwa, sehingga lajunya 12.000 ÷ 600.000 × 100% = 2,00%. Angka 1,33% hanya pertumbuhan alami, 0,67% hanya migrasi neto, 2,83% lupa mengurangi migran keluar, dan 3,50% hanya menjumlahkan kelahiran dan migran masuk." },
+
+  /* 20 */
+  { tipe: "mcma",
+    stimulus: "Survei terhadap 400 migran muda asal Desa Sukatani yang kini bekerja di kota mencatat alasan utama mereka berpindah.",
+    tabel: { kepala: ["Alasan utama", "Jumlah responden"], baris: [["Upah di kota lebih tinggi", "220"], ["Melanjutkan pendidikan", "100"], ["Lahan garapan di desa sempit", "60"], ["Rumah rusak akibat banjir", "20"]] },
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Lahan garapan yang sempit di desa merupakan faktor penarik migrasi.", "Upah yang lebih tinggi di kota termasuk faktor penarik migrasi.", "Alasan nonekonomi (pendidikan dan bencana) dikemukakan oleh 25% responden.", "Alasan ekonomi (upah dan lahan sempit) dikemukakan oleh 70% responden.", "Rumah yang rusak akibat banjir merupakan faktor pendorong migrasi."], kunci: [1, 3, 4],
+    pembahasan: "Faktor penarik berasal dari daerah tujuan (upah tinggi), sedangkan faktor pendorong berasal dari daerah asal (lahan sempit, bencana banjir). Alasan ekonomi = (220 + 60) ÷ 400 = 70%. Alasan nonekonomi = (100 + 20) ÷ 400 = 30%, bukan 25%. Lahan sempit adalah faktor pendorong, bukan penarik." },
+
+  /* 21 */
+  { tipe: "kategori",
+    stimulus: "Kabupaten Wanasari memiliki luas 500 km² dengan penduduk 300.000 jiwa. Dari luas itu, 60 km² adalah lahan pertanian.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Kepadatan penduduk aritmatik kabupaten ini adalah 600 jiwa/km².", "Kepadatan penduduk agraris kabupaten ini adalah 5.000 jiwa/km².", "Kepadatan agraris lebih rendah daripada kepadatan aritmatik.", "Kepadatan agraris yang jauh lebih tinggi daripada kepadatan aritmatik menandakan besarnya tekanan penduduk terhadap lahan pertanian."], kunci: [true, true, false, true],
+    pembahasan: "(1) 300.000 ÷ 500 = 600 jiwa/km². (2) Kepadatan agraris = penduduk ÷ luas lahan pertanian = 300.000 ÷ 60 = 5.000 jiwa/km². (3) Salah, 5.000 jauh lebih tinggi daripada 600. (4) Benar: banyak penduduk bergantung pada lahan pertanian yang relatif sempit." },
+
+  /* 22 */
+  { tipe: "pg",
+    stimulus: "Sebuah perusahaan memegang konsesi hutan tanaman produksi seluas 3.000 ha dengan daur tanam-tebang 30 tahun. Perusahaan menebang 150 ha per tahun dan segera menanam kembali lahan yang ditebang.",
+    pertanyaan: "Pernyataan yang paling tepat tentang pengelolaan tersebut adalah ...",
+    opsi: ["Lestari, karena 150 ha lebih sedikit daripada luas konsesi 3.000 ha.", "Tidak lestari: batas lestari 100 ha per tahun, sehingga setelah 20 tahun lahan habis ditebang sebelum tanaman pertama berumur 30 tahun.", "Lestari, karena tanaman baru dapat dipanen pada tahun berikutnya.", "Tidak lestari, sebab batas lestari hanya 30 ha per tahun mengikuti lamanya daur.", "Lestari, selama setiap hektare yang ditebang langsung ditanami kembali pada tahun yang sama."], kunci: 1,
+    pembahasan: "Penebangan lestari = luas konsesi ÷ daur = 3.000 ÷ 30 = 100 ha per tahun. Dengan 150 ha per tahun, seluruh lahan habis ditebang dalam 3.000 ÷ 150 = 20 tahun, padahal tanaman yang ditanam pada tahun pertama baru berumur 20 tahun dan belum siap panen sehingga akan terjadi kekosongan hasil. Menanam kembali saja tidak cukup bila laju tebang melebihi laju tumbuh. Batas 30 ha berasal dari kekeliruan membagi dengan lamanya daur sebagai luas." },
+
+  /* 23 */
+  { tipe: "mcma",
+    stimulus: "Di sebuah kabupaten, tambang batu bara terbuka telah beroperasi 12 tahun. Lubang bekas galian dibiarkan menganga dan terisi air berwarna jingga dengan pH 3,5. Air itu merembes ke anak sungai tempat warga hilir mencari ikan; hasil tangkapan menurun dan sebagian warga mengalami gatal-gatal setelah mandi.",
+    pertanyaan: "Pilih semua pernyataan yang benar.",
+    opsi: ["Batu bara termasuk sumber daya alam yang dapat diperbarui karena terbentuk terus-menerus.", "Dampak pertambangan terbatas pada lokasi tambang sehingga warga hilir tidak terpengaruh.", "Air asam dapat terbentuk ketika mineral sulfida pada batuan yang terbuka teroksidasi oleh udara dan air.", "Reklamasi berupa penutupan lubang, penataan lahan, dan revegetasi membantu memulihkan fungsi lahan bekas tambang.", "Pemantauan kualitas air sungai di hilir dan pengolahan air asam tambang termasuk upaya pengelolaan lingkungan."], kunci: [2, 3, 4],
+    pembahasan: "Air asam tambang terbentuk dari oksidasi mineral sulfida (misalnya pirit). Reklamasi, revegetasi, serta pemantauan dan pengolahan air adalah bagian pengelolaan tambang yang berwawasan lingkungan. Batu bara terbentuk selama jutaan tahun sehingga tidak terbarukan, dan kasus ini jelas menunjukkan dampak sampai ke hilir sungai." },
+
+  /* 24 */
+  { tipe: "pg",
+    stimulus: "Kota A berpenduduk 90.000 jiwa dan Kota B berpenduduk 10.000 jiwa. Jarak kedua kota 40 km. Titik henti (breaking point) menurut hukum gravitasi Reilly dihitung dari kota yang lebih kecil dengan rumus d = jarak kedua kota ÷ (1 + √(P_A ÷ P_B)).",
+    pertanyaan: "Titik henti yang membatasi wilayah pengaruh kedua kota terletak ...",
+    opsi: ["10 km dari Kota B", "10 km dari Kota A", "20 km dari Kota B", "30 km dari Kota B", "36 km dari Kota B"], kunci: 0,
+    pembahasan: "√(90.000 ÷ 10.000) = √9 = 3, sehingga d = 40 ÷ (1 + 3) = 10 km dari Kota B (kota yang lebih kecil), atau 30 km dari Kota A. Kota yang lebih besar memiliki daya tarik lebih kuat, sehingga titik henti bergeser mendekati kota yang lebih kecil. Pilihan lain keliru menentukan kota acuan atau tidak memakai rumus." },
+
+  /* 25 */
+  { tipe: "kategori",
+    stimulus: "Kota Tirta adalah pusat perdagangan dan jasa. Setiap hari 40% pekerja dari tiga kecamatan di sekitarnya bekerja di Kota Tirta. Ketiga kecamatan itu juga sama-sama berjenis tanah aluvial dengan sawah beririgasi. Pemerintah menyusun Rencana Tata Ruang Wilayah (RTRW) yang menetapkan sepertiga lahan sebagai ruang terbuka hijau dan kawasan resapan air.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Arus pekerja ke Kota Tirta menunjukkan ciri wilayah nodal (fungsional).", "Kesamaan jenis tanah dan penggunaan lahan sawah di tiga kecamatan merupakan ciri wilayah nodal.", "Mengubah kawasan resapan menjadi permukiman tidak bermasalah selama harga tanah naik.", "RTRW berfungsi sebagai pedoman pemanfaatan ruang agar pembangunan terarah dan seimbang."], kunci: [true, false, false, true],
+    pembahasan: "(1) Benar: keterkaitan melalui arus pekerja menandai wilayah nodal, yaitu wilayah yang disatukan oleh pusat dan hubungan fungsional. (2) Salah: kesamaan sifat fisik atau penggunaan lahan menandai wilayah formal (seragam). (3) Salah: kawasan resapan menjaga keseimbangan air tanah dan mencegah banjir, sehingga tidak boleh dialihkan hanya karena nilai tanah. (4) Benar: RTRW mengatur peruntukan ruang." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Geografi", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Litosfer, hidrosfer, atmosfer, mitigasi bencana, peta dan SIG, kependudukan, sumber daya dan tata ruang"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

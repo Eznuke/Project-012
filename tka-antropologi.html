@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi TKA Antropologi</title>
+<style>
+  /* ===== Token desain ===== */
+  :root {
+    --bg: #f5f2ea;
+    --ink: #151515;
+    --muted: #6b675d;
+    --line: #d9d4c6;
+    --card: #fffdf8;
+    --accent: #e8420e;
+    --ok: #1d7a46;
+    --bad: #b3261e;
+    --warn: #b7791f;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--gap);
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .c12 { grid-column: span 12; }
+  .c8  { grid-column: span 8; }
+  .c4  { grid-column: span 4; }
+
+  /* ===== Header ===== */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+  }
+  header .grid { align-items: center; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .timer { text-align: right; font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .timer.warn { color: var(--accent); }
+
+  /* ===== Progress & navigator ===== */
+  main { padding-bottom: 48px; }
+  .progres-info { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-top: 20px; gap: 12px; }
+  .link-btn { background: none; border: none; border-bottom: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; padding: 0 0 1px; }
+  .bar { height: 6px; background: var(--line); margin-top: 6px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink); transition: width .25s; }
+  .navgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; padding: 12px; background: var(--card); border: 1px solid var(--line); }
+  .navgrid button { aspect-ratio: 1.3; border: 2px solid var(--line); background: var(--bg); font-weight: 700; cursor: pointer; }
+  .navgrid button.jawab { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .navgrid button.ragu { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .navgrid button.kini { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 2px solid var(--line); background: var(--bg); vertical-align: -1px; }
+  .legend .l-jawab::before { background: var(--ink); border-color: var(--ink); }
+  .legend .l-ragu::before { background: var(--warn); border-color: var(--warn); }
+
+  /* ===== Soal ===== */
+  .no-soal { font-size: clamp(72px, 22vw, 168px); font-weight: 900; line-height: .9; letter-spacing: -.04em; margin: 20px 0 8px; }
+  .no-soal span { color: var(--accent); }
+  .tipe { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border: 2px solid var(--ink); padding: 2px 8px; margin-bottom: 12px; }
+  .stimulus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); padding: 14px 16px; font-size: 15px; margin-bottom: 20px; }
+  .stimulus table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  .stimulus th, .stimulus td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; }
+  .stimulus th { background: var(--bg); }
+  .pertanyaan { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .petunjuk { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  /* ===== Opsi jawaban ===== */
+  .opsi { display: grid; gap: 10px; }
+  .opsi button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); padding: 12px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opsi button:hover { border-color: var(--ink); }
+  .opsi button .huruf { font-weight: 900; min-width: 20px; }
+  .opsi button.terpilih { border-color: var(--ink); background: var(--ink); color: var(--card); }
+  .opsi.kotak button .huruf { border: 2px solid currentColor; min-width: 24px; height: 24px; text-align: center; line-height: 20px; font-size: 13px; }
+
+  /* ===== Pilihan ganda kompleks kategori ===== */
+  .kat-row { background: var(--card); border: 2px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+  .kat-row p { margin-bottom: 10px; font-size: 15px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 10px; font-weight: 700; border: 2px solid var(--line); background: var(--bg); cursor: pointer; }
+  .seg button.terpilih { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  /* ===== Navigasi bawah ===== */
+  .ragu-btn { margin-top: 18px; width: 100%; padding: 10px; font-weight: 700; border: 2px dashed var(--warn); background: transparent; color: var(--warn); cursor: pointer; }
+  .ragu-btn.aktif { background: var(--warn); color: #fff; border-style: solid; }
+  .nav { display: flex; gap: var(--gap); margin-top: 14px; }
+  .btn { flex: 1; padding: 14px; font-weight: 700; border: 2px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--ink); color: var(--card); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; }
+  .btn.utama { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.utama:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+
+  /* ===== Intro ===== */
+  .intro-judul { font-size: clamp(40px, 11vw, 88px); font-weight: 900; line-height: .95; letter-spacing: -.03em; margin: 28px 0 16px; }
+  .intro-judul span { color: var(--accent); }
+  .info-tabel { width: 100%; border-collapse: collapse; margin: 12px 0 20px; background: var(--card); }
+  .info-tabel td { border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .info-tabel td:first-child { font-weight: 700; width: 38%; }
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 16px; }
+  .catatan a { color: var(--ink); }
+  .daftar { margin: 8px 0 0 18px; font-size: 14px; }
+  .daftar li { margin-bottom: 4px; }
+
+  /* ===== Hasil ===== */
+  .skor { font-size: clamp(96px, 30vw, 220px); font-weight: 900; line-height: .9; letter-spacing: -.05em; margin-top: 28px; }
+  .ringkas { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 12px 0 28px; font-weight: 700; }
+  .ringkas .ok { color: var(--ok); } .ringkas .bad { color: var(--bad); } .ringkas .sb { color: var(--warn); }
+  .ulasan { background: var(--card); border: 1px solid var(--line); padding: 16px; margin-bottom: var(--gap); border-left: 6px solid var(--line); }
+  .ulasan.benar { border-left-color: var(--ok); }
+  .ulasan.sebagian { border-left-color: var(--warn); }
+  .ulasan.salah { border-left-color: var(--bad); }
+  .ulasan h3 { font-size: 15px; margin-bottom: 6px; }
+  .ulasan .jwb { font-size: 14px; margin: 8px 0; }
+  .ulasan .jwb b.ok { color: var(--ok); } .ulasan .jwb b.bad { color: var(--bad); }
+  .ulasan ul { list-style: none; font-size: 14px; margin: 6px 0; }
+  .ulasan li { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  .ulasan li .t-ok { color: var(--ok); font-weight: 700; } .ulasan li .t-bad { color: var(--bad); font-weight: 700; }
+  .ulasan .bahas { font-size: 14px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+
+  /* ===== Layar lebar ===== */
+  @media (min-width: 720px) {
+    .c8-md { grid-column: 3 / span 8; }
+    .judul { font-size: 16px; }
+    .navgrid { grid-template-columns: repeat(10, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .c8, .c4 { grid-column: span 12; }
+    .judul { margin-bottom: 4px; }
+    .timer { text-align: left; font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c8 judul">Simulasi TKA Antropologi<small>Mapel Pilihan · SMA</small></div>
+    <div class="c4 timer" id="timer">60:00</div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md" id="app"></div>
+</main>
+
+<script>
+/* =====================================================================
+   SIMULASI TKA ANTROPOLOGI (SMA, MAPEL PILIHAN)
+   Mengikuti format TKA: 25 soal, 60 menit, tiga bentuk soal:
+     "pg"       = pilihan ganda sederhana (1 jawaban benar)  -> kunci: index
+     "mcma"     = pilihan ganda kompleks (lebih dari 1 benar) -> kunci: array index
+     "kategori" = pilihan ganda kompleks kategori (Benar/Salah per pernyataan)
+                  -> kunci: array boolean
+   Semua soal di bawah adalah soal latihan ORISINAL, bukan soal resmi TKA.
+   ===================================================================== */
+const DURASI_DETIK = 60 * 60;
+const STORAGE_KEY = "tka-antropologi-v1";
+const HURUF = ["A", "B", "C", "D", "E"];
+const LABEL_TIPE = { pg: "Pilihan Ganda", mcma: "Pilihan Ganda Kompleks", kategori: "Pilihan Ganda Kompleks (Kategori)" };
+const PETUNJUK = {
+  pg: "Pilih satu jawaban yang paling tepat.",
+  mcma: "Pilih semua jawaban yang benar (lebih dari satu).",
+  kategori: "Tentukan apakah setiap pernyataan Benar atau Salah."
+};
+
+/* ===== Mapel Pilihan: ANTROPOLOGI (TKA SMA) ===== */
+const TXT_TELUK = "Kasus (masyarakat rekaan): Masyarakat Tanjung Rimba tinggal di pesisir sebuah pulau kecil. Setiap tahun, para tetua adat menetapkan masa larangan menangkap teripang di teluk selama enam bulan. Pelanggar dikenai denda berupa uang dan harus membantu memperbaiki balai kampung. Pembukaan masa tangkap diawali doa bersama dan tarian yang dibawakan para pemudi. Belakangan, sebagian pemuda membeli kapal bermotor dan menjual hasil laut langsung kepada pengepul dari kota lewat telepon seluler, termasuk pada masa larangan.";
+
+const TXT_ETNO = "Kasus (rekaan): Seorang peneliti tinggal selama 14 bulan di Dusun Lembah Kabut. Ia ikut bekerja di ladang, menghadiri upacara panen, mencatat kejadian setiap malam dalam jurnal lapangan, dan mewawancarai seorang tetua yang dipercaya warga sebagai penutur pengetahuan adat. Warga menjelaskan upacara “mengembalikan padi” sebagai cara berterima kasih kepada leluhur. Peneliti mencatat bahwa upacara itu juga menyerentakkan waktu tanam sehingga serangan hama lebih mudah dikendalikan.";
+
+const TXT_NILAI = "Kasus (rekaan): Seorang wisatawan dari kota besar menulis ulasan tentang desa yang dikunjunginya: “Mereka makan dengan tangan dan duduk bersila di lantai. Itu cara makan yang kotor dan terbelakang, seharusnya mereka belajar memakai sendok dan kursi seperti kita.” Seorang antropolog yang membaca ulasan itu menjelaskan bahwa di desa tersebut makan dengan tangan dilakukan setelah mencuci tangan bersama dan menyatukan keluarga di satu tikar.";
+
+const TXT_GLOBAL = "Kasus (rekaan): Di sebuah kota, waralaba burger global menyajikan menu nasi dengan sambal terasi, dan sebuah kedai kopi internasional menyediakan minuman berbahan gula aren. Pada saat yang sama, sebuah sanggar menampilkan tari tradisional dengan iringan musik elektronik di media sosial, dan videonya ditonton jutaan orang. Sebagian tokoh adat khawatir tari itu kehilangan makna asli, sementara sebagian anak muda justru menjadi tertarik mempelajari tarian aslinya.";
+
+const SOAL = [
+  /* ---------- Kasus Tanjung Rimba (1-4) ---------- */
+  { tipe: "pg", stimulus: TXT_TELUK,
+    pertanyaan: "Pasangan unsur kebudayaan dan wujudnya yang tepat berdasarkan kasus di atas adalah ...",
+    opsi: ["Aturan masa larangan menangkap teripang – wujud ide (sistem nilai dan norma); tarian pembukaan – wujud aktivitas; kapal bermotor – wujud artefak", "Aturan masa larangan – wujud artefak; tarian pembukaan – wujud ide; kapal bermotor – wujud aktivitas", "Aturan masa larangan – wujud aktivitas; tarian pembukaan – wujud artefak; kapal bermotor – wujud ide", "Aturan masa larangan – wujud ide; tarian pembukaan – wujud artefak; kapal bermotor – wujud aktivitas", "Aturan masa larangan – wujud artefak; tarian pembukaan – wujud aktivitas; kapal bermotor – wujud ide"], kunci: 0,
+    pembahasan: "Menurut Koentjaraningrat, kebudayaan berwujud (1) kompleks ide, nilai, dan norma, (2) kompleks aktivitas dan tindakan berpola, (3) benda hasil karya (artefak). Aturan adalah norma, tarian adalah tindakan berpola, kapal motor adalah benda. Pilihan lain mengacak ketiga wujud itu." },
+
+  { tipe: "mcma", stimulus: TXT_TELUK,
+    pertanyaan: "Pilih semua pasangan unsur kebudayaan universal dan contohnya dalam kasus yang tepat.",
+    opsi: ["Doa bersama sebelum masa tangkap – sistem religi", "Tarian pembukaan – sistem pengetahuan", "Tetua adat menetapkan aturan dan sanksi – organisasi sosial", "Kapal bermotor – sistem peralatan hidup dan teknologi", "Menjual hasil laut ke pengepul – bahasa"], kunci: [0, 2, 3],
+    pembahasan: "(A) doa adalah ekspresi sistem religi. (C) kepemimpinan dan aturan adat termasuk organisasi sosial. (D) kapal motor adalah teknologi. (B) salah: tarian adalah kesenian. (E) salah: menjual hasil laut termasuk sistem mata pencaharian hidup, bukan bahasa." },
+
+  { tipe: "pg", stimulus: TXT_TELUK,
+    pertanyaan: "Perubahan yang paling berpotensi melemahkan aturan masa larangan adalah ...",
+    opsi: ["Anak-anak diajari bahasa nasional di sekolah", "Tarian pembukaan dibawakan pemudi, bukan pemuda", "Penjualan langsung ke pengepul luar pada masa larangan melemahkan kontrol sosial dan memberi insentif ekonomi untuk melanggar", "Tetua adat berdoa sebelum masa tangkap dibuka", "Denda berupa kerja bakti memperbaiki balai kampung"], kunci: 2,
+    pembahasan: "Aturan berfungsi karena ditaati dan diawasi komunitas. Akses ke pembeli luar yang tidak terikat aturan adat memberi dorongan ekonomi dan celah menghindari sanksi sosial, sehingga kontrol sosial melemah. (A), (B), (D), dan (E) tidak secara langsung menggerus fungsi aturan." },
+
+  { tipe: "kategori", stimulus: TXT_TELUK,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Penggunaan kapal bermotor adalah contoh inovasi teknologi yang dapat mendorong perubahan sosial budaya.", "Setiap perubahan budaya pasti merusak kebudayaan asli.", "Masa larangan berfungsi sebagai pengendalian sosial sekaligus pelestarian sumber daya.", "Karena teluk dimiliki bersama, aturan masa larangan tidak memerlukan sanksi."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar: teknologi baru dapat mengubah cara kerja dan hubungan ekonomi. (2) salah: perubahan dapat bersifat positif atau negatif, dan budaya dapat beradaptasi. (3) benar: aturan dan sanksi mengatur perilaku (kontrol sosial) dan memberi waktu pemulihan populasi teripang. (4) salah: tanpa sanksi, aturan mudah dilanggar, terutama pada sumber daya milik bersama." },
+
+  /* ---------- Etnografi (5-8) ---------- */
+  { tipe: "pg", stimulus: TXT_ETNO,
+    pertanyaan: "Keunggulan utama cara kerja peneliti tersebut dibandingkan survei kuesioner satu kali adalah ...",
+    opsi: ["Hasilnya pasti dapat dianalisis dengan statistik sehingga lebih objektif", "Peneliti dapat memahami makna dan konteks tindakan dari sudut pandang warga melalui keterlibatan jangka panjang", "Waktu penelitian jauh lebih singkat dan murah", "Peneliti tidak perlu berinteraksi dengan warga", "Hasilnya dapat langsung digeneralisasi untuk seluruh masyarakat Indonesia"], kunci: 1,
+    pembahasan: "Observasi partisipasi dan tinggal lama memungkinkan peneliti menangkap makna, konteks, dan hal yang tidak diungkapkan dalam jawaban singkat kuesioner. (A) dan (E) lebih sesuai pendekatan kuantitatif berskala besar. (C) salah karena etnografi memakan waktu lama. (D) bertentangan dengan inti metode." },
+
+  { tipe: "pg", stimulus: TXT_ETNO,
+    pertanyaan: "Dalam kasus tersebut, penjelasan warga bahwa upacara adalah wujud terima kasih kepada leluhur disebut sudut pandang ..., sedangkan catatan peneliti tentang penyerentakan waktu tanam adalah sudut pandang ...",
+    opsi: ["etik; emik", "emik; emik", "etik; etik", "emik; etik", "relatif; absolut"], kunci: 3,
+    pembahasan: "Emik adalah penjelasan dari sudut pandang pelaku budaya, sedangkan etik adalah analisis dari sudut pandang pengamat luar yang memakai kerangka ilmiah. Kedua sudut pandang saling melengkapi dalam etnografi." },
+
+  { tipe: "mcma", stimulus: TXT_ETNO,
+    pertanyaan: "Pilih semua tindakan peneliti yang sesuai etika penelitian etnografi.",
+    opsi: ["Menjelaskan tujuan penelitian dan meminta persetujuan warga sebelum mewawancarai", "Menggunakan nama samaran bagi informan yang meminta identitasnya dirahasiakan", "Mengakui dalam laporan bahwa kehadiran dan latar belakang peneliti dapat memengaruhi data", "Membayar informan agar menceritakan hal yang sesuai dengan hipotesis peneliti", "Mempublikasikan lokasi tempat ritual sakral tanpa izin demi menarik wisatawan"], kunci: [0, 1, 2],
+    pembahasan: "(A) persetujuan terinformasi, (B) menjaga kerahasiaan informan, dan (C) refleksivitas adalah praktik etis. (D) memanipulasi data. (E) melanggar hak komunitas atas tempat sakralnya." },
+
+  { tipe: "kategori", stimulus: TXT_ETNO,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Thick description (deskripsi tebal) menekankan penggambaran tindakan beserta makna yang melekat padanya bagi pelaku.", "Rapport adalah hubungan saling percaya antara peneliti dan warga yang memudahkan memperoleh data.", "Informan kunci harus selalu laki-laki dewasa agar datanya sahih.", "Tujuan utama etnografi adalah menguji hipotesis dengan angka statistik semata."], kunci: [true, true, false, false],
+    pembahasan: "(1) benar, konsep Clifford Geertz. (2) benar: rapport penting dalam kerja lapangan. (3) salah: informan kunci dipilih berdasarkan pengetahuan dan kedudukannya, bukan jenis kelamin atau usia. (4) salah: etnografi bersifat kualitatif-deskriptif untuk memahami makna dan pola budaya." },
+
+  /* ---------- Etnosentrisme dan relativisme (9-11) ---------- */
+  { tipe: "pg", stimulus: TXT_NILAI,
+    pertanyaan: "Sikap wisatawan dalam kutipan tersebut paling tepat disebut ...",
+    opsi: ["relativisme budaya", "akulturasi", "asimilasi", "difusi", "etnosentrisme"], kunci: 4,
+    pembahasan: "Wisatawan menilai budaya lain dengan standar budayanya sendiri dan menganggapnya lebih rendah, yaitu etnosentrisme. Relativisme budaya justru memahami praktik dalam konteks budayanya. Akulturasi, asimilasi, dan difusi adalah proses perubahan, bukan sikap menilai." },
+
+  { tipe: "mcma", stimulus: TXT_NILAI,
+    pertanyaan: "Pilih semua pernyataan yang benar tentang relativisme budaya.",
+    opsi: ["Memandang suatu praktik budaya dalam konteks nilai dan sejarah budayanya sendiri", "Berarti menganggap semua budaya berbentuk sama", "Dikembangkan antara lain oleh antropolog Franz Boas", "Sama artinya dengan menganggap budaya lain lebih unggul daripada budaya sendiri", "Berguna untuk mengurangi prasangka dalam interaksi lintas budaya"], kunci: [0, 2, 4],
+    pembahasan: "(A), (C), dan (E) benar. (B) salah: relativisme mengakui keberagaman, bukan keseragaman. (D) salah: menganggap budaya sendiri lebih rendah juga merupakan bias (xenosentrisme), bukan relativisme." },
+
+  { tipe: "pg", stimulus: "Kasus (rekaan): Pemerintah daerah merencanakan memindahkan sebuah komunitas adat ke permukiman baru karena menganggap ladang berpindah mereka sebagai cara bertani yang terbelakang dan merusak hutan. Komunitas menyatakan bahwa ladang berpindah mengikuti siklus bera selama bertahun-tahun, dan lahan yang diistirahatkan dipakai kembali setelah pulih.",
+    pertanyaan: "Langkah yang paling sesuai dengan pendekatan antropologi dalam menghadapi kasus ini adalah ...",
+    opsi: ["Segera memindahkan komunitas karena cara bertani modern pasti lebih baik", "Membiarkan komunitas tanpa komunikasi apa pun dengan pemerintah", "Melakukan studi etnografi dan ekologi untuk memahami fungsi siklus bera, lalu merancang kebijakan bersama komunitas", "Mengabaikan penjelasan komunitas karena tidak berdasarkan ilmu pertanian formal", "Melarang komunitas berladang dan memberi mereka pekerjaan di kota"], kunci: 2,
+    pembahasan: "Pendekatan antropologi mengutamakan pemahaman konteks dan partisipasi komunitas, bukan penilaian etnosentris. Studi etnografi dan ekologi tentang siklus bera, lalu kebijakan yang dirancang bersama komunitas, adalah langkah yang tepat. (A), (D), dan (E) etnosentris karena menganggap cara bertani lokal otomatis salah; (B) mengabaikan masalah nyata yang perlu dikaji." },
+
+  /* ---------- Perubahan sosial budaya (12-16) ---------- */
+  { tipe: "pg", stimulus: "Menara sebuah masjid kuno di Jawa memiliki bentuk yang menyerupai bangunan candi bergaya Hindu-Jawa, tetapi fungsinya sebagai tempat mengumandangkan azan. Unsur bangunan lama dipertahankan, sedangkan fungsi baru dari agama yang baru diterima masyarakat.",
+    pertanyaan: "Proses perubahan kebudayaan yang paling tepat menggambarkan hal tersebut adalah ...",
+    opsi: ["Akulturasi", "Asimilasi", "Difusi tanpa percampuran", "Kebudayaan asli sepenuhnya hilang", "Culture shock"], kunci: 0,
+    pembahasan: "Akulturasi adalah percampuran dua kebudayaan yang bertemu, tanpa menghilangkan ciri asli masing-masing, seperti unsur candi Hindu-Jawa dan fungsi masjid. Asimilasi melebur kelompok hingga ciri khas hilang. Culture shock adalah gejala psikologis individu." },
+
+  { tipe: "pg", stimulus: "Di sebuah desa terpencil, telepon seluler awalnya dikenal oleh dua pedagang yang sering bepergian ke kota. Dalam dua tahun, hampir setiap keluarga memilikinya karena melihat dan meniru tetangga, dan pedagang pun mengajarkan cara memakainya.",
+    pertanyaan: "Penyebaran telepon seluler di desa itu paling tepat disebut ...",
+    opsi: ["Evolusi", "Revolusi", "Penetrasi tanpa kontak budaya", "Difusi", "Disorganisasi"], kunci: 3,
+    pembahasan: "Difusi adalah penyebaran unsur kebudayaan dari satu kelompok atau individu ke kelompok lain melalui kontak, misalnya perdagangan, dan peniruan. (A) dan (B) adalah laju perubahan dari dalam masyarakat. (C) keliru karena ada kontak dengan pedagang. (E) bukan proses penyebaran unsur budaya." },
+
+  { tipe: "mcma", stimulus: "Para sosiolog dan antropolog membedakan faktor pendorong perubahan sosial budaya menjadi faktor yang berasal dari dalam masyarakat (internal) dan dari luar (eksternal).",
+    pertanyaan: "Pilih semua yang termasuk faktor internal.",
+    opsi: ["Bertambahnya atau berkurangnya jumlah penduduk", "Penemuan baru (inovasi) di dalam masyarakat itu sendiri", "Kontak dengan kebudayaan lain", "Peperangan dengan masyarakat lain", "Konflik atau pemberontakan di dalam masyarakat"], kunci: [0, 1, 4],
+    pembahasan: "Faktor internal: perubahan jumlah penduduk, penemuan baru, dan pertentangan atau pemberontakan dalam masyarakat sendiri. (C) dan (D) berasal dari luar masyarakat (eksternal)." },
+
+  { tipe: "kategori", stimulus: "Kasus (rekaan): Sebuah desa wisata baru saja mendapat sambungan internet berkecepatan tinggi, dan warganya membeli ponsel canggih. Namun, belum ada kesepakatan tentang tata krama bermedia sosial. Beberapa warga menyebarkan kabar bohong yang merusak hubungan antartetangga, dan aturan desa belum mengatur hal itu.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Culture lag terjadi ketika unsur nonmaterial (norma dan nilai) tertinggal dibandingkan perkembangan unsur material (teknologi).", "Culture lag sama artinya dengan asimilasi.", "Kondisi desa dalam kasus menggambarkan culture lag.", "Kebingungan seseorang ketika memasuki lingkungan budaya asing disebut culture lag."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar: konsep William Ogburn. (2) salah: asimilasi adalah peleburan budaya. (3) benar: teknologi internet datang cepat, tetapi norma bermedia belum menyesuaikan. (4) salah: itu culture shock." },
+
+  { tipe: "pg", stimulus: "Sebuah kelompok pendatang minoritas tinggal berdampingan dengan penduduk setempat selama beberapa generasi. Melalui perkawinan campur dan pergaulan, anak-anak mereka memakai bahasa setempat dan mengikuti adat setempat. Lambat laun ciri khas budaya asal kelompok itu nyaris tidak terlihat lagi.",
+    pertanyaan: "Proses yang dialami kelompok pendatang tersebut paling tepat disebut ...",
+    opsi: ["Akulturasi", "Asimilasi", "Segregasi", "Inovasi", "Culture shock"], kunci: 1,
+    pembahasan: "Asimilasi adalah peleburan dua kebudayaan atau lebih hingga ciri khas kelompok minoritas hilang dan menyatu dengan budaya dominan. Pada akulturasi, ciri masing-masing masih tampak. Segregasi adalah pemisahan, bukan peleburan." },
+
+  /* ---------- Globalisasi (17-20) ---------- */
+  { tipe: "pg", stimulus: TXT_GLOBAL,
+    pertanyaan: "Fenomena menu burger dengan sambal terasi dan kopi berbahan gula aren paling tepat disebut ...",
+    opsi: ["Isolasi budaya", "Fundamentalisme budaya", "Glokalisasi", "Etnosentrisme", "Disintegrasi budaya"], kunci: 2,
+    pembahasan: "Glokalisasi adalah penyesuaian produk atau budaya global dengan selera dan konteks lokal. Menu yang dikawinkan dengan rasa lokal adalah contohnya. (A) dan (D) tidak sesuai dengan kasus." },
+
+  { tipe: "pg", stimulus: TXT_GLOBAL,
+    pertanyaan: "Pernyataan yang paling tepat tentang dampak globalisasi terhadap budaya lokal berdasarkan kasus adalah ...",
+    opsi: ["Globalisasi pasti menyeragamkan semua budaya lokal tanpa perlawanan", "Globalisasi tidak berpengaruh pada budaya lokal", "Globalisasi dapat menimbulkan risiko pergeseran makna, tetapi juga membuka ruang bagi budaya lokal untuk dikenal luas dan dipelajari kembali", "Budaya lokal hanya dapat bertahan jika menutup diri dari semua pengaruh luar", "Media sosial selalu merusak tradisi tanpa manfaat apa pun"], kunci: 2,
+    pembahasan: "Kasus menunjukkan dua sisi: kekhawatiran pergeseran makna tari, tetapi juga minat baru generasi muda. Jawaban seimbang adalah (C). Pilihan lain bersifat mutlak atau absolut." },
+
+  { tipe: "mcma", stimulus: TXT_GLOBAL,
+    pertanyaan: "Pilih semua tanggapan yang konstruktif untuk menjaga kelestarian tari tradisional.",
+    opsi: ["Mendokumentasikan tari aslinya lengkap dengan makna dan kaidahnya, lalu memublikasikannya secara digital", "Melarang semua inovasi dan penggunaan musik modern dalam bentuk apa pun", "Melibatkan generasi muda dalam kreasi baru yang tetap berpijak pada kaidah dasar tarian", "Menutup diri dari semua budaya asing", "Mengadakan festival yang menempatkan pelaku adat sebagai penentu keaslian dan penjaga makna"], kunci: [0, 2, 4],
+    pembahasan: "(A), (C), dan (E) menggabungkan pelestarian dengan adaptasi dan melibatkan pemilik budaya. (B) dan (D) bersifat menutup diri dan menolak adaptasi sehingga justru mengurangi daya tarik generasi muda." },
+
+  { tipe: "kategori", stimulus: TXT_GLOBAL,
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Glokalisasi berarti produk global disesuaikan dengan selera lokal.", "Globalisasi budaya baru terjadi sejak abad ke-21.", "Kemajuan teknologi komunikasi mempercepat penyebaran unsur budaya antarmasyarakat.", "Globalisasi selalu menghasilkan penyeragaman budaya total tanpa perlawanan dari masyarakat lokal."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar. (2) salah: kontak budaya global sudah berlangsung lama, misalnya lewat jalur perdagangan dan penyebaran agama, meski kini sangat dipercepat teknologi. (3) benar. (4) salah: masyarakat sering menafsirkan ulang, menyaring, atau menolak unsur budaya asing." },
+
+  /* ---------- Kearifan lokal (21-23) ---------- */
+  { tipe: "pg", stimulus: "Sistem irigasi subak di Bali diakui UNESCO sebagai Warisan Budaya Dunia karena dianggap mewujudkan filosofi Tri Hita Karana, yaitu tiga penyebab kebahagiaan: hubungan harmonis dengan Tuhan (parahyangan), dengan sesama manusia (pawongan), dan dengan alam (palemahan). Dalam sebuah subak (kasus rekaan), pembagian air bergilir diatur oleh pengurus yang disepakati anggota, dan sebelum masa tanam digelar upacara di pura subak.",
+    pertanyaan: "Aspek Tri Hita Karana yang paling tepat tercermin dari pembagian air bergilir yang disepakati anggota adalah ...",
+    opsi: ["Parahyangan, hubungan manusia dengan Tuhan", "Pawongan, hubungan antarmanusia", "Palemahan, hubungan manusia dengan alam saja", "Parahyangan, hubungan manusia dengan alam", "Pawongan, hubungan manusia dengan Tuhan"], kunci: 1,
+    pembahasan: "Kesepakatan dan pembagian air yang adil antaranggota mencerminkan pawongan (hubungan antarmanusia). Upacara di pura mencerminkan parahyangan, dan pengelolaan air demi kesuburan lahan terkait palemahan. (A), (C), (D), (E) memasangkan istilah dengan hubungan yang tidak tepat." },
+
+  { tipe: "mcma", stimulus: "Berbagai suku di Nusantara memiliki kearifan lokal dalam mengelola sumber daya dan hubungan sosial.",
+    pertanyaan: "Pilih semua pasangan kearifan lokal dan penjelasannya yang tepat.",
+    opsi: ["Sasi (Maluku dan Papua) – larangan mengambil sumber daya tertentu dalam jangka waktu tertentu", "Mapalus (Minahasa) – tradisi gotong royong", "Panglima Laot (Aceh) – tokoh adat yang memimpin pengelolaan hutan adat", "Subak (Bali) – sistem pengelolaan hutan adat di pegunungan", "Awig-awig (Bali) – aturan adat yang mengikat warga desa adat"], kunci: [0, 1, 4],
+    pembahasan: "(A), (B), dan (E) tepat. (C) salah: Panglima Laot memimpin adat kelautan dan nelayan. (D) salah: subak adalah sistem irigasi sawah tradisional." },
+
+  { tipe: "mcma", stimulus: "Kasus (rekaan): Sebuah desa adat memiliki hutan larangan di hulu sungai yang tidak boleh ditebang. Pemerintah ingin membangun program pengelolaan hutan di wilayah itu.",
+    pertanyaan: "Pilih semua pendekatan yang tepat agar program tersebut menghargai kearifan lokal.",
+    opsi: ["Melibatkan lembaga adat dalam perencanaan dan pengambilan keputusan", "Menolak semua pengetahuan lokal karena tidak berbasis ilmiah", "Mendokumentasikan pengetahuan dan aturan adat tentang hutan, lalu memadukannya dengan kajian ilmiah", "Menerapkan aturan seragam nasional tanpa memperhatikan hukum adat setempat", "Memetakan wilayah adat bersama warga secara partisipatif"], kunci: [0, 2, 4],
+    pembahasan: "(A), (C), dan (E) menghargai pengetahuan lokal dan melibatkan pemilik budaya. (B) dan (D) bersifat etnosentris dan berpotensi menimbulkan konflik serta merusak sistem pelestarian yang sudah berjalan." },
+
+  /* ---------- Kekerabatan dan unsur universal (24-25) ---------- */
+  { tipe: "pg", stimulus: "Tiga masyarakat rekaan memiliki aturan keturunan yang berbeda.",
+    tabel: { kepala: ["Masyarakat", "Ciri sistem keturunan"], baris: [["P", "Anak mewarisi suku dari ibu; harta pusaka diwariskan melalui garis perempuan."], ["Q", "Anak mewarisi marga dari ayah; harta diwariskan terutama kepada anak laki-laki."], ["R", "Anak dihitung sebagai keturunan kedua belah pihak, ayah dan ibu."]] },
+    pertanyaan: "Pasangan masyarakat dan sistem kekerabatan yang tepat adalah ...",
+    opsi: ["P patrilineal, Q matrilineal, R bilateral", "P bilateral, Q patrilineal, R matrilineal", "P matrilineal, Q bilateral, R patrilineal", "P matrilineal, Q patrilineal, R bilateral", "P patrilineal, Q bilateral, R matrilineal"], kunci: 3,
+    pembahasan: "P menarik garis keturunan dari ibu (matrilineal, misalnya Minangkabau). Q dari ayah (patrilineal, misalnya Batak). R dari kedua pihak (bilateral, misalnya Jawa). Pilihan lain menukar istilah." },
+
+  { tipe: "kategori", stimulus: "Sebuah laporan etnografi tentang masyarakat X disusun dalam bab-bab yang mengikuti kerangka unsur kebudayaan universal Koentjaraningrat: bahasa, sistem pengetahuan, organisasi sosial, sistem peralatan hidup dan teknologi, sistem mata pencaharian hidup, sistem religi, dan kesenian.",
+    pertanyaan: "Tentukan apakah setiap pernyataan berikut Benar atau Salah.",
+    pernyataan: ["Menurut Koentjaraningrat, terdapat tujuh unsur kebudayaan universal.", "Sistem religi dan kesenian bukan unsur universal karena tidak ditemukan pada semua masyarakat.", "Sistem kekerabatan termasuk dalam unsur organisasi sosial.", "Sistem pengetahuan hanya dimiliki oleh masyarakat yang sudah mengenal tulisan."], kunci: [true, false, true, false],
+    pembahasan: "(1) benar. (2) salah: religi dan kesenian termasuk tujuh unsur yang dianggap ada pada semua masyarakat. (3) benar. (4) salah: setiap masyarakat memiliki sistem pengetahuan, misalnya tentang alam, flora, fauna, dan ruang, termasuk yang diwariskan secara lisan." }
+];
+
+/* ===== State ===== */
+let state = null;          // { jawaban, ragu, posisi, akhir, selesai, karenaWaktu }
+let layar = "intro";       // intro | ujian | hasil
+let tick = null;
+let panelNav = false;
+const app = document.getElementById("app");
+const timerEl = document.getElementById("timer");
+
+/* ===== Penyimpanan lokal (agar progres aman saat halaman dimuat ulang) ===== */
+function simpan() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    jawaban: state.jawaban, ragu: state.ragu, posisi: state.posisi, akhir: state.akhir
+  })); } catch (e) {}
+}
+function hapusSimpanan() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+function muat() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (raw && Array.isArray(raw.jawaban) && raw.jawaban.length === SOAL.length) return raw;
+  } catch (e) {}
+  return null;
+}
+
+/* ===== Util ===== */
+function el(tag, attrs = {}, ...anak) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, "");
+    else e.setAttribute(k, v);
+  }
+  anak.forEach(a => e.append(a));
+  return e;
+}
+function terjawab(i) {
+  const j = state.jawaban[i], tipe = SOAL[i].tipe;
+  if (tipe === "pg") return j !== null;
+  if (tipe === "mcma") return Array.isArray(j) && j.length > 0;
+  return Array.isArray(j) && j.every(v => v !== null);
+}
+function jumlahTerjawab() { return SOAL.reduce((n, _, i) => n + (terjawab(i) ? 1 : 0), 0); }
+function ke(i) { state.posisi = i; panelNav = false; simpan(); render(); window.scrollTo(0, 0); }
+
+/* ===== Timer (berbasis waktu akhir, jadi akurat walau tab di-background) ===== */
+function tampilTimer() {
+  const s = Math.max(Math.round((state.akhir - Date.now()) / 1000), 0);
+  timerEl.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  timerEl.classList.toggle("warn", s <= 300);
+  return s;
+}
+function jalankanTimer() {
+  clearInterval(tick);
+  tick = setInterval(() => { if (tampilTimer() <= 0) selesai(true); }, 1000);
+  tampilTimer();
+}
+
+/* ===== Alur ujian ===== */
+function mulai() {
+  state = {
+    jawaban: SOAL.map(s => s.tipe === "mcma" ? [] : s.tipe === "kategori" ? s.pernyataan.map(() => null) : null),
+    ragu: SOAL.map(() => false),
+    posisi: 0,
+    akhir: Date.now() + DURASI_DETIK * 1000,
+    selesai: false
+  };
+  simpan();
+  layar = "ujian";
+  jalankanTimer();
+  render();
+  window.scrollTo(0, 0);
+}
+function selesai(karenaWaktu) {
+  clearInterval(tick);
+  state.selesai = true;
+  state.karenaWaktu = karenaWaktu;
+  layar = "hasil";
+  hapusSimpanan();
+  render();
+  window.scrollTo(0, 0);
+}
+function ulangi() {
+  state = null; layar = "intro";
+  timerEl.textContent = "60:00"; timerEl.classList.remove("warn");
+  render(); window.scrollTo(0, 0);
+}
+
+/* ===== Penilaian =====
+   pg       : 1 poin jika benar
+   mcma     : 1 poin jika himpunan jawaban persis sama dengan kunci
+   kategori : poin = proporsi pernyataan yang dijawab dengan benar */
+function skorSoal(i) {
+  const s = SOAL[i], j = state.jawaban[i];
+  if (s.tipe === "pg") return j === s.kunci ? 1 : 0;
+  if (s.tipe === "mcma") return Array.isArray(j) && j.length === s.kunci.length && s.kunci.every(k => j.includes(k)) ? 1 : 0;
+  return Array.isArray(j) ? j.filter((v, n) => v === s.kunci[n]).length / s.kunci.length : 0;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (layar === "intro") return renderIntro();
+  if (layar === "hasil") return renderHasil();
+  renderSoal();
+}
+
+function renderIntro() {
+  app.innerHTML = "";
+  const adaLama = muat();
+  app.append(
+    el("h1", { class: "intro-judul" }, "Antropologi", el("span", {}, ".")),
+    el("table", { class: "info-tabel" },
+      ...[["Jumlah soal", "25 butir"], ["Waktu", "60 menit"],
+          ["Bentuk soal", "Pilihan ganda, pilihan ganda kompleks, pilihan ganda kompleks kategori"],
+          ["Cakupan", "Konsep kebudayaan, perubahan budaya, akulturasi, kearifan lokal, etnografi, relativisme budaya, globalisasi"]]
+        .map(r => el("tr", {}, el("td", {}, r[0]), el("td", {}, r[1])))),
+    el("p", { class: "petunjuk" }, "Petunjuk pengerjaan:"),
+    el("ul", { class: "daftar" },
+      el("li", {}, "Pilihan ganda: pilih satu jawaban yang paling tepat."),
+      el("li", {}, "Pilihan ganda kompleks: pilih semua jawaban yang benar."),
+      el("li", {}, "Kategori: tentukan Benar atau Salah untuk setiap pernyataan."),
+      el("li", {}, "Tandai soal yang diragukan dengan tombol \"Ragu-ragu\", lalu buka Daftar Soal untuk kembali."),
+      el("li", {}, "Ujian otomatis dikumpulkan saat waktu habis.")),
+    el("div", { class: "nav" }, el("button", { class: "btn utama", onclick: mulai }, "Mulai Ujian")),
+    el("p", { class: "catatan" },
+      "Soal pada simulasi ini adalah soal latihan orisinal yang mengikuti format TKA, bukan soal resmi. Untuk simulasi resmi, buka ",
+      el("a", { href: "https://pusmendik.kemdikbud.go.id/tka/simulasi_tka", target: "_blank", rel: "noopener" }, "pusmendik.kemdikbud.go.id/tka/simulasi_tka"), ".")
+  );
+  // Lanjutkan sesi yang tersimpan (misalnya halaman tidak sengaja dimuat ulang)
+  if (adaLama) {
+    state = { ...adaLama, selesai: false };
+    layar = "ujian";
+    if (state.akhir <= Date.now()) { selesai(true); return; }
+    jalankanTimer();
+    render();
+  }
+}
+
+function renderSoal() {
+  const i = state.posisi, s = SOAL[i];
+  const terakhir = i === SOAL.length - 1;
+  app.innerHTML = "";
+
+  // progress + tombol daftar soal
+  const info = el("div", { class: "progres-info" },
+    el("span", {}, `Soal ${i + 1} dari ${SOAL.length} · ${jumlahTerjawab()} terjawab`),
+    el("button", { class: "link-btn", type: "button", onclick: () => { panelNav = !panelNav; render(); } }, panelNav ? "Tutup daftar" : "Daftar soal"));
+  const bar = el("div", { class: "bar" }, el("i", {}));
+  bar.firstChild.style.width = ((i + 1) / SOAL.length * 100) + "%";
+  app.append(info, bar);
+
+  // navigator nomor soal
+  if (panelNav) {
+    const g = el("div", { class: "navgrid" });
+    SOAL.forEach((_, n) => {
+      const kelas = [state.ragu[n] ? "ragu" : terjawab(n) ? "jawab" : "", n === i ? "kini" : ""].join(" ").trim();
+      g.append(el("button", { type: "button", class: kelas, onclick: () => ke(n) }, String(n + 1)));
+    });
+    app.append(g, el("div", { class: "legend" },
+      el("span", { class: "l-jawab" }, "Terjawab"), el("span", { class: "l-ragu" }, "Ragu-ragu"), el("span", {}, "Belum dijawab")));
+  }
+
+  // nomor besar (satu keputusan visual utama per layar)
+  app.append(el("div", { class: "no-soal" }, String(i + 1).padStart(2, "0"), el("span", {}, ".")));
+  app.append(el("span", { class: "tipe" }, LABEL_TIPE[s.tipe]));
+
+  // stimulus
+  const stim = el("div", { class: "stimulus" }, el("p", {}, s.stimulus));
+  if (s.tabel) {
+    const tb = el("table");
+    tb.append(el("tr", {}, ...s.tabel.kepala.map(h => el("th", {}, h))));
+    s.tabel.baris.forEach(r => tb.append(el("tr", {}, ...r.map(c => el("td", {}, c)))));
+    stim.append(tb);
+  }
+  app.append(stim, el("p", { class: "pertanyaan" }, s.pertanyaan), el("p", { class: "petunjuk" }, PETUNJUK[s.tipe]));
+
+  // area jawaban sesuai bentuk soal
+  if (s.tipe === "pg") {
+    const w = el("div", { class: "opsi" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i] === n ? "terpilih" : "",
+      onclick: () => { state.jawaban[i] = n; simpan(); render(); }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else if (s.tipe === "mcma") {
+    const w = el("div", { class: "opsi kotak" });
+    s.opsi.forEach((t, n) => w.append(el("button", {
+      type: "button", class: state.jawaban[i].includes(n) ? "terpilih" : "",
+      onclick: () => {
+        const a = state.jawaban[i];
+        state.jawaban[i] = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+        simpan(); render();
+      }
+    }, el("span", { class: "huruf" }, HURUF[n]), el("span", {}, t))));
+    app.append(w);
+  } else {
+    s.pernyataan.forEach((t, n) => {
+      const v = state.jawaban[i][n];
+      const set = (val) => { state.jawaban[i][n] = val; simpan(); render(); };
+      app.append(el("div", { class: "kat-row" },
+        el("p", {}, `${n + 1}. ${t}`),
+        el("div", { class: "seg" },
+          el("button", { type: "button", class: v === true ? "terpilih" : "", onclick: () => set(true) }, "Benar"),
+          el("button", { type: "button", class: v === false ? "terpilih" : "", onclick: () => set(false) }, "Salah"))));
+    });
+  }
+
+  // ragu-ragu + navigasi
+  app.append(
+    el("button", { type: "button", class: "ragu-btn" + (state.ragu[i] ? " aktif" : ""),
+      onclick: () => { state.ragu[i] = !state.ragu[i]; simpan(); render(); } },
+      state.ragu[i] ? "Ditandai ragu-ragu (ketuk untuk batal)" : "Tandai ragu-ragu"),
+    el("div", { class: "nav" },
+      el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => ke(i - 1) }, "Sebelumnya"),
+      el("button", { type: "button", class: "btn utama", onclick: () => {
+        if (!terakhir) return ke(i + 1);
+        const kosong = SOAL.length - jumlahTerjawab();
+        const ragu = state.ragu.filter(Boolean).length;
+        let pesan = "";
+        if (kosong) pesan += `Masih ada ${kosong} soal belum dijawab lengkap. `;
+        if (ragu) pesan += `Ada ${ragu} soal ditandai ragu-ragu. `;
+        if (pesan && !confirm(pesan + "Tetap selesai dan lihat hasil?")) return;
+        selesai(false);
+      } }, terakhir ? "Selesai & Lihat Hasil" : "Selanjutnya"))
+  );
+}
+
+/* ===== Hasil ===== */
+function renderHasil() {
+  const total = SOAL.length;
+  const poin = SOAL.reduce((n, _, i) => n + skorSoal(i), 0);
+  const skor = Math.round(poin / total * 100);
+  const penuh = SOAL.filter((_, i) => skorSoal(i) === 1).length;
+  const sebagian = SOAL.filter((_, i) => { const k = skorSoal(i); return k > 0 && k < 1; }).length;
+  const salah = total - penuh - sebagian;
+
+  app.innerHTML = "";
+  app.append(
+    el("p", { class: "progres-info" }, state.karenaWaktu ? "Waktu habis. Jawabanmu dikumpulkan otomatis." : "Ujian selesai."),
+    el("div", { class: "skor" }, String(skor)),
+    el("div", { class: "ringkas" },
+      el("span", { class: "ok" }, `Benar penuh: ${penuh}`),
+      el("span", { class: "sb" }, `Sebagian: ${sebagian}`),
+      el("span", { class: "bad" }, `Salah/kosong: ${salah}`),
+      el("span", {}, `Poin: ${poin.toFixed(2).replace(/\.?0+$/, "")} / ${total}`))
+  );
+
+  SOAL.forEach((s, i) => {
+    const sk = skorSoal(i), j = state.jawaban[i];
+    const status = sk === 1 ? "benar" : sk > 0 ? "sebagian" : "salah";
+    const kartu = el("div", { class: "ulasan " + status },
+      el("h3", {}, `Soal ${i + 1} · ${LABEL_TIPE[s.tipe]} · ${sk === 1 ? "Benar" : sk > 0 ? "Sebagian benar" : "Salah"}`),
+      el("p", {}, s.pertanyaan));
+
+    if (s.tipe === "pg") {
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), j === null ? "Tidak dijawab" : `${HURUF[j]}. ${s.opsi[j]}`),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), `${HURUF[s.kunci]}. ${s.opsi[s.kunci]}`));
+    } else if (s.tipe === "mcma") {
+      const dipilih = j.length ? j.map(n => HURUF[n]).join(", ") : "Tidak dijawab";
+      kartu.append(
+        el("p", { class: "jwb" }, el("b", { class: sk ? "ok" : "bad" }, "Jawabanmu: "), dipilih),
+        el("p", { class: "jwb" }, el("b", { class: "ok" }, "Jawaban benar: "), s.kunci.map(n => HURUF[n]).join(", ")));
+    } else {
+      const ul = el("ul");
+      s.pernyataan.forEach((t, n) => {
+        const u = j[n], benar = u === s.kunci[n];
+        const nama = v => v === null ? "kosong" : v ? "Benar" : "Salah";
+        ul.append(el("li", {}, `${n + 1}. ${t} `,
+          el("span", { class: benar ? "t-ok" : "t-bad" }, `Kamu: ${nama(u)}`),
+          ` · kunci: ${nama(s.kunci[n])}`));
+      });
+      kartu.append(ul);
+    }
+    kartu.append(el("p", { class: "bahas" }, s.pembahasan));
+    app.append(kartu);
+  });
+
+  app.append(el("div", { class: "nav" }, el("button", { type: "button", class: "btn utama", onclick: ulangi }, "Ulangi Ujian")));
+}
+
+render();
+</script>
+</body>
+</html>

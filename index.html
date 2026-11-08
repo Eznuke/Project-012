@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daftar Mapel TKA SMA</title>
+<style>
+  /* ===== Token desain (sama dengan simulasi Matematika) ===== */
+  :root {
+    --bg: #f5f2ea; --ink: #151515; --muted: #6b675d; --line: #d9d4c6;
+    --card: #fffdf8; --accent: #e8420e; --ok: #1d7a46; --gap: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: "Helvetica Neue", Arial, system-ui, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button, a { font: inherit; color: inherit; }
+
+  /* ===== Grid 12 kolom ===== */
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: var(--gap); max-width: 980px; margin: 0 auto; padding: 0 16px; }
+  .c12 { grid-column: span 12; }
+  @media (min-width: 720px) { .c8-md { grid-column: 3 / span 8; } }
+
+  header { border-bottom: 2px solid var(--ink); padding: 12px 0; }
+  .judul { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .judul small { display: block; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+  main { padding-bottom: 56px; }
+  h1 { font-size: clamp(48px, 14vw, 120px); font-weight: 900; line-height: .92; letter-spacing: -.04em; margin: 28px 0 12px; }
+  h1 span { color: var(--accent); }
+  .lead { font-size: 15px; color: var(--muted); margin-bottom: 8px; }
+
+  h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin: 32px 0 6px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  h2 em { font-style: normal; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 12px; }
+
+  /* ===== Baris mapel ===== */
+  .daftar { list-style: none; }
+  .baris { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .nama { font-size: 18px; font-weight: 700; }
+  .meta { grid-column: 1; font-size: 13px; color: var(--muted); }
+  .aksi { grid-column: 2; grid-row: 1 / span 2; }
+  .btn { display: inline-block; text-decoration: none; padding: 10px 14px; font-weight: 700; font-size: 14px; border: 2px solid var(--ink); background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn:hover { background: var(--ink); border-color: var(--ink); }
+  .segera { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border: 2px dashed var(--line); padding: 6px 10px; white-space: nowrap; }
+
+  .catatan { font-size: 13px; color: var(--muted); margin-top: 28px; }
+  .catatan a { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="grid">
+    <div class="c12 judul">Simulasi TKA<small>SMA / MA · Tes Kemampuan Akademik</small></div>
+  </div>
+</header>
+
+<main class="grid">
+  <div class="c12 c8-md">
+    <h1>Pilih<br>Mapel<span>.</span></h1>
+    <p class="lead">3 mapel wajib dan 18 mapel pilihan. Peserta mengerjakan semua mapel wajib dan memilih 2 mapel pilihan.</p>
+
+    <h2>Mapel Wajib <em>3 mapel</em></h2>
+    <ul class="daftar" id="wajib"></ul>
+
+    <h2>Pilihan · Matematika &amp; Bahasa <em>9 mapel</em></h2>
+    <ul class="daftar" id="bahasa"></ul>
+
+    <h2>Pilihan · Sains <em>3 mapel</em></h2>
+    <ul class="daftar" id="sains"></ul>
+
+    <h2>Pilihan · Sosial &amp; Humaniora <em>6 mapel</em></h2>
+    <ul class="daftar" id="sosial"></ul>
+
+    <p class="catatan">
+      Pengelompokan pilihan di atas hanya untuk memudahkan membaca. Jumlah soal dan durasi mengikuti informasi yang dilaporkan media untuk TKA SMA 2026 dan bisa berubah, jadi cek pengumuman resmi
+      <a href="https://pusmendik.kemdikbud.go.id/tka/simulasi_tka" target="_blank" rel="noopener">Pusmendik</a> atau sekolahmu.
+    </p>
+  </div>
+</main>
+
+<script>
+/* =====================================================================
+   DATA MAPEL
+   Untuk menambah paket soal baru: isi properti "file" dengan nama file
+   simulasinya (misalnya "tka-fisika.html"). Selama kosong, tampil "Segera hadir".
+   ===================================================================== */
+const WAJIB = [
+  { nama: "Bahasa Indonesia (Literasi)", soal: 30, menit: 75, file: "tka-bahasa-indonesia.html" },
+  { nama: "Bahasa Inggris",              soal: 30, menit: 75, file: "tka-bahasa-inggris.html" },
+  { nama: "Matematika (Numerasi)",       soal: 25, menit: 75, file: "tka-matematika-wajib.html" }
+];
+const P = (nama, file = "") => ({ nama, soal: 25, menit: 60, file });
+const BAHASA = [
+  P("Matematika Tingkat Lanjut", "tka-matematika-lanjut.html"), P("Bahasa Indonesia Tingkat Lanjut", "tka-bindo-lanjut.html"),
+  P("Bahasa Inggris Tingkat Lanjut", "tka-bing-lanjut.html"), P("Bahasa Prancis", "tka-prancis.html"),
+  P("Bahasa Jerman", "tka-jerman.html"), P("Bahasa Jepang", "tka-jepang.html"), P("Bahasa Mandarin", "tka-mandarin.html"),
+  P("Bahasa Korea", "tka-korea.html"), P("Bahasa Arab", "tka-arab.html")
+];
+const SAINS = [P("Fisika", "tka-fisika.html"), P("Kimia", "tka-kimia.html"), P("Biologi", "tka-biologi.html")];
+const SOSIAL = [
+  P("Pendidikan Pancasila dan Kewarganegaraan", "tka-pkn.html"), P("Ekonomi", "tka-ekonomi.html"), P("Geografi", "tka-geografi.html"),
+  P("Sosiologi", "tka-sosiologi.html"), P("Sejarah", "tka-sejarah.html"), P("Antropologi", "tka-antropologi.html")
+];
+
+function isi(idUl, data) {
+  const ul = document.getElementById(idUl);
+  data.forEach(m => {
+    const li = document.createElement("li");
+    li.className = "baris";
+    li.innerHTML = '<span class="nama"></span><span class="meta"></span><div class="aksi"></div>';
+    li.querySelector(".nama").textContent = m.nama;
+    li.querySelector(".meta").textContent = m.soal + " soal · " + m.menit + " menit";
+    const aksi = li.querySelector(".aksi");
+    if (m.file) {
+      const a = document.createElement("a");
+      a.className = "btn"; a.href = m.file; a.textContent = "Mulai";
+      aksi.append(a);
+    } else {
+      const s = document.createElement("span");
+      s.className = "segera"; s.textContent = "Segera hadir";
+      aksi.append(s);
+    }
+    ul.append(li);
+  });
+}
+isi("wajib", WAJIB); isi("bahasa", BAHASA); isi("sains", SAINS); isi("sosial", SOSIAL);
+</script>
+</body>
+</html>
